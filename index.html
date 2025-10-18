@@ -1,397 +1,181 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <title>WebAR 圖卡收集範例 - Gemini 增強版</title>
-
+    <title>AR 圖卡收集遊戲</title>
+    <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe-master.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+    
     <style>
-      body {
-        margin: 0;
-        overflow: hidden; /* 隱藏滾動條 */
-        font-family: sans-serif;
-      }
-
-      /* 左側縮圖 UI 的容器 */
-      .thumbnails {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        z-index: 10;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      /* 縮圖樣式 */
-      .thumbnail {
-        width: 60px;
-        height: 60px;
-        border: 2px solid white;
-        border-radius: 8px;
-        background-color: #333;
-        opacity: 0.4; /* 預設為半透明 (未收集) */
-        transition: opacity 0.3s, border-color 0.3s;
-        background-size: cover;
-        background-position: center;
-        cursor: pointer;
-      }
-
-      /* 已收集狀態 */
-      .thumbnail.collected {
-        opacity: 1.0;
-        border-color: #4CAF50; /* 綠色邊框表示已收集 */
-      }
-
-      /* 右上角 QR Code 面板 */
-      .qr-code-panel {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        z-index: 10;
-        background-color: white;
-        padding: 10px;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        display: none; /* 預設隱藏 */
-      }
-
-      #qrCodeImage {
-        width: 128px;
-        height: 128px;
-      }
-
-      /* 載入畫面 */
-      #loader {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: white;
-        z-index: 100;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 1.2em;
-        text-align: center;
-      }
-
-      /* Gemini 功能: 故事面板 */
-      .story-backdrop {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.6);
-          z-index: 20;
-          display: none;
-          justify-content: center;
-          align-items: center;
-      }
-
-      .story-panel {
-          background-color: white;
-          padding: 20px;
-          border-radius: 12px;
-          width: 80%;
-          max-width: 400px;
-          box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-          text-align: center;
-      }
-      .story-panel h2 {
-          margin-top: 0;
-          color: #333;
-      }
-      .story-content {
-          min-height: 100px;
-          margin: 15px 0;
-          padding: 10px;
-          border-radius: 6px;
-          background-color: #f0f0f0;
-          color: #555;
-          text-align: left;
-          white-space: pre-wrap; /* 保留換行 */
-      }
-      .story-panel button {
-          padding: 10px 20px;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 1em;
-          margin-top: 10px;
-      }
-      #generate-story-btn {
-          background-color: #007bff;
-          color: white;
-      }
-       #generate-story-btn:disabled {
-          background-color: #aaa;
-          cursor: not-allowed;
-      }
-      #close-story-btn {
-          background-color: #6c757d;
-          color: white;
-          margin-left: 10px;
-      }
+        body {
+            margin: 0;
+            overflow: hidden; /* 隱藏滾動條 */
+        }
+        /* 左側縮圖容器 */
+        #thumbnails-container {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+        .thumbnail {
+            width: 50px;
+            height: 50px;
+            border: 2px solid white;
+            border-radius: 8px;
+            opacity: 0.3; /* 預設半透明 */
+            transition: opacity 0.3s;
+        }
+        /* 左上角 QR Code 容器 */
+        #qrcode-container {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 20;
+            display: none; /* 預設隱藏 */
+        }
     </style>
-    <!-- 引入 QR Code 產生器函式庫 -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"></script>
-  </head>
-  <body>
-    <!-- 載入畫面 -->
-    <div id="loader">正在載入 AR 體驗...<br/>請允許相機權限</div>
-
-    <!-- 左側縮圖 UI -->
-    <div class="thumbnails">
-      <div class="thumbnail" data-card-name="card1" data-character-title="烈焰騎士" style="background-image: url('https://placehold.co/100x100/E74C3C/white?text=騎士');"></div>
-      <div class="thumbnail" data-card-name="card2" data-character-title="深海法師" style="background-image: url('https://placehold.co/100x100/3498DB/white?text=法師');"></div>
+</head>
+<body>
+    <div id="thumbnails-container">
+        <img id="thumb-0" class="thumbnail" src="./characters/char1.png">
+        <img id="thumb-1" class="thumbnail" src="./characters/char2.png">
+        <img id="thumb-2" class="thumbnail" src="./characters/char3.png">
+        <img id="thumb-3" class="thumbnail" src="./characters/char4.png">
+        <img id="thumb-4" class="thumbnail" src="./characters/char5.png">
+        <img id="thumb-5" class="thumbnail" src="./characters/char6.png">
+        <img id="thumb-6" class="thumbnail" src="./characters/char7.png">
+        <img id="thumb-7" class="thumbnail" src="./characters/char8.png">
     </div>
+    <div id="qrcode-container"></div>
 
-    <!-- 右上角 QR Code 面板 -->
-    <div id="qrCodePanel" class="qr-code-panel">
-      <img id="qrCodeImage" src="" alt="QR Code" />
-    </div>
+    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+        <a-assets>
+            <img id="char1" src="./characters/char1.png">
+            <img id="char2" src="./characters/char2.png">
+            <img id="char3" src="./characters/char3.png">
+            <img id="char4" src="./characters/char4.png">
+            <img id="char5" src="./characters/char5.png">
+            <img id="char6" src="./characters/char6.png">
+            <img id="char7" src="./characters/char7.png">
+            <img id="char8" src="./characters/char8.png">
+        </a-assets>
 
-    <!-- ✨ Gemini 功能: 角色故事面板 ✨ -->
-    <div id="story-backdrop" class="story-backdrop">
-        <div id="story-panel" class="story-panel">
-            <h2 id="story-character-title">角色故事</h2>
-            <div id="story-content" class="story-content">點擊按鈕來產生角色的背景故事！</div>
-            <button id="generate-story-btn">✨ 產生角色故事</button>
-            <button id="close-story-btn">關閉</button>
-        </div>
-    </div>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-scene mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind; filterMinCF:0.0001; filterBeta: 0.001;"
-             vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" >
-      
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-      <a-entity mindar-image-target="targetIndex: 0" id="target-card1">
-        <a-plane color="#E74C3C" opaciy="0.8" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
-      </a-entity>
-      
-       <a-entity mindar-image-target="targetIndex: 1" id="target-card2">
-        <a-sphere radius="0.2" color="#3498DB" position="0 0.2 0"></a-sphere>
-      </a-entity>
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-image class="character-image" src="#char1" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
+        </a-entity>
+        <a-entity mindar-image-target="targetIndex: 1">
+            <a-image class="character-image" src="#char2" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
+        </a-entity>
+        <a-entity mindar-image-target="targetIndex: 2">
+            <a-image class="character-image" src="#char3" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
+        </a-entity>
+        <a-entity mindar-image-target="targetIndex: 3">
+            <a-image class="character-image" src="#char4" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
+        </a-entity>
+        <a-entity mindar-image-target="targetIndex: 4">
+            <a-image class="character-image" src="#char5" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
+        </a-entity>
+        <a-entity mindar-image-target="targetIndex: 5">
+            <a-image class="character-image" src="#char6" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
+        </a-entity>
+        <a-entity mindar-image-target="targetIndex: 6">
+            <a-image class="character-image" src="#char7" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
+        </a-entity>
+        <a-entity mindar-image-target="targetIndex: 7">
+            <a-image class="character-image" src="#char8" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
+        </a-entity>
     </a-scene>
 
     <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const sceneEl = document.querySelector('a-scene');
-        const loader = document.getElementById('loader');
-        
-        const TOTAL_CARDS = 2; 
-        let collectionStatus = JSON.parse(localStorage.getItem('arCollectionStatus')) || {};
-        // ✨ Gemini 功能: 儲存角色故事
-        let collectionStories = JSON.parse(localStorage.getItem('arCollectionStories')) || {};
-
-        const qrCodePanel = document.getElementById('qrCodePanel');
-        const qrCodeImage = document.getElementById('qrCodeImage');
-        const qrCodeContentKey = 'uniqueQRCodeContent';
-
-        // ✨ Gemini 功能: 取得故事面板的 UI 元件
-        const storyBackdrop = document.getElementById('story-backdrop');
-        const storyPanel = document.getElementById('story-panel');
-        const storyCharacterTitle = document.getElementById('story-character-title');
-        const storyContent = document.getElementById('story-content');
-        const generateStoryBtn = document.getElementById('generate-story-btn');
-        const closeStoryBtn = document.getElementById('close-story-btn');
-        let currentCardForStory = null;
-
-        // ======== 初始化 UI ========
-        const updateAllThumbnails = () => {
-          document.querySelectorAll('.thumbnail').forEach(thumb => {
-            const cardName = thumb.dataset.cardName;
-            if (collectionStatus[cardName]) {
-              thumb.classList.add('collected');
-            }
-            // ✨ Gemini 功能: 為已收集的縮圖加上點擊事件
-            thumb.addEventListener('click', () => {
-                if(collectionStatus[cardName]){
-                    showStoryPanel(cardName, thumb.dataset.characterTitle);
-                }
-            });
-          });
-        };
-        
-        // ======== Gemini API 呼叫邏輯 ========
-        const callGeminiAPI = async (characterTitle) => {
-            generateStoryBtn.disabled = true;
-            storyContent.textContent = '正在與異次元的吟遊詩人聯繫中...';
+        // 等待整個網頁文件載入完成
+        document.addEventListener('DOMContentLoaded', () => {
+            const sceneEl = document.querySelector('#ar-scene');
+            const qrcodeContainer = document.getElementById('qrcode-container');
             
-            const apiKey = ""; // Canvas 將在執行時提供金鑰
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            
-            const systemPrompt = "你是一位專門撰寫奇幻角色背景故事的作家。你的風格富有想像力、簡潔有力且充滿神秘感。請用繁體中文回答。";
-            const userQuery = `為一個名為「${characterTitle}」的奇幻角色，寫一段簡短（約50-70字）的背景故事。`;
-            
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-            };
+            // 遊戲狀態：用一個陣列來記錄8個角色是否已被收集
+            const collectionState = [false, false, false, false, false, false, false, false];
+            const totalCharacters = 8;
+            let collectedCount = 0;
 
-            try {
-                // 指數退避重試邏輯
-                let response;
-                let attempts = 0;
-                const maxAttempts = 5;
-                while (attempts < maxAttempts) {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+            // 取得所有圖卡目標實體
+            const characterEntities = document.querySelectorAll('[mindar-image-target]');
 
-                    if (response.ok) {
-                        break; // 成功，跳出迴圈
-                    }
+            // 為每個圖卡目標新增事件監聽器
+            characterEntities.forEach((entity, index) => {
+                const characterImage = entity.querySelector('.character-image');
+
+                // 當圖卡被偵測到 (進入畫面)
+                entity.addEventListener('targetFound', event => {
+                    // 顯示對應的角色圖片
+                    characterImage.setAttribute('visible', 'true');
                     
-                    if (response.status === 429 || response.status >= 500) {
-                        attempts++;
-                        const delay = Math.pow(2, attempts) * 1000 + Math.random() * 1000;
-                        console.log(`請求失敗，狀態碼: ${response.status}. ${delay/1000}秒後重試...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        throw new Error(`API 請求失敗，狀態碼: ${response.status}`);
+                    // 檢查是否為第一次收集
+                    if (!collectionState[index]) {
+                        console.log(`收集到角色 #${index + 1}`);
+                        collectionState[index] = true;
+                        collectedCount++;
+
+                        // 更新左側縮圖的樣式
+                        document.getElementById(`thumb-${index}`).style.opacity = '1';
+
+                        // 檢查是否已全部收集完畢
+                        checkIfComplete();
                     }
-                }
-                 if (!response.ok) {
-                    throw new Error(`經過 ${maxAttempts} 次重試後，API 請求仍然失敗。`);
-                }
+                });
 
-
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                if (text) {
-                    storyContent.textContent = text;
-                    // 儲存故事
-                    collectionStories[currentCardForStory] = text;
-                    localStorage.setItem('arCollectionStories', JSON.stringify(collectionStories));
-                    generateStoryBtn.style.display = 'none'; // 產生後隱藏按鈕
-                } else {
-                    storyContent.textContent = '吟遊詩人今天似乎沒有靈感，請稍後再試。';
-                }
-            } catch (error) {
-                console.error('Gemini API 呼叫失敗:', error);
-                storyContent.textContent = '與異次元的通訊似乎中斷了...請檢查網路連線或稍後再試。';
-            } finally {
-                if(generateStoryBtn.style.display !== 'none') {
-                    generateStoryBtn.disabled = false;
-                }
-            }
-        };
-
-
-        // ======== 故事面板邏輯 ========
-        const showStoryPanel = (cardName, characterTitle) => {
-            currentCardForStory = cardName;
-            storyCharacterTitle.textContent = characterTitle;
-            
-            if (collectionStories[cardName]) {
-                storyContent.textContent = collectionStories[cardName];
-                generateStoryBtn.style.display = 'none';
-            } else {
-                storyContent.textContent = '這位神秘的角色背後似乎藏著一段不為人知的故事...';
-                generateStoryBtn.style.display = 'block';
-                generateStoryBtn.disabled = false;
-            }
-            storyBackdrop.style.display = 'flex';
-        };
-
-        const hideStoryPanel = () => {
-            storyBackdrop.style.display = 'none';
-            currentCardForStory = null;
-        };
-
-        generateStoryBtn.addEventListener('click', () => {
-            if (currentCardForStory) {
-                const characterTitle = document.querySelector(`[data-card-name="${currentCardForStory}"]`).dataset.characterTitle;
-                callGeminiAPI(characterTitle);
-            }
-        });
-        closeStoryBtn.addEventListener('click', hideStoryPanel);
-        storyBackdrop.addEventListener('click', (e) => {
-             if(e.target === storyBackdrop) {
-                hideStoryPanel();
-             }
-        });
-
-
-        // ======== 檢查是否全部收集完成 ========
-        const checkForCompletion = () => {
-          const collectedCount = Object.values(collectionStatus).filter(Boolean).length;
-          if (collectedCount >= TOTAL_CARDS) {
-            console.log("恭喜！所有圖卡都收集完成了！");
-            generateAndShowQRCode();
-          }
-        };
-
-        // ======== QR Code 邏輯 ========
-        const generateAndShowQRCode = () => {
-            let qrContent = localStorage.getItem(qrCodeContentKey);
-            
-            if (!qrContent) {
-                const randomId = Math.floor(10000 + Math.random() * 90000).toString();
-                const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
-                qrContent = JSON.stringify({ timestamp, uniqueId: randomId });
-                localStorage.setItem(qrCodeContentKey, qrContent);
-                console.log(`產生新的 QR Code 內容並儲存: ${qrContent}`);
-            } else {
-                 console.log(`從儲存紀錄中載入 QR Code 內容: ${qrContent}`);
-            }
-
-            const typeNumber = 4;
-            const errorCorrectionLevel = 'L';
-            const qr = qrcode(typeNumber, errorCorrectionLevel);
-            qr.addData(qrContent);
-            qr.make();
-            qrCodeImage.src = qr.createDataURL(4);
-            qrCodePanel.style.display = 'block';
-        };
-
-        // ======== 監聽 AR 事件 ========
-        sceneEl.addEventListener('arReady', () => {
-          loader.style.display = 'none';
-          console.log("MindAR 已準備就緒");
-          updateAllThumbnails();
-          checkForCompletion();
-        });
-
-        const target1 = document.getElementById('target-card1');
-        target1.addEventListener("mindar-targetfound", event => {
-          collectCard('card1');
-        });
-
-        const target2 = document.getElementById('target-card2');
-        target2.addEventListener("mindar-targetfound", event => {
-          collectCard('card2');
-        });
-
-        // ======== 核心收集邏輯 ========
-        const collectCard = (cardName) => {
-          if (!collectionStatus[cardName]) {
-            console.log(`成功收集到圖卡: ${cardName}`);
-            collectionStatus[cardName] = true;
-            const thumb = document.querySelector(`[data-card-name="${cardName}"]`);
-            thumb.classList.add('collected');
-            
-            // 為新收集到的卡片加上點擊事件
-            thumb.addEventListener('click', () => {
-                showStoryPanel(cardName, thumb.dataset.characterTitle);
+                // 當圖卡離開畫面
+                entity.addEventListener('targetLost', event => {
+                    // 隱藏角色圖片
+                    characterImage.setAttribute('visible', 'false');
+                });
             });
 
-            localStorage.setItem('arCollectionStatus', JSON.stringify(collectionStatus));
-            checkForCompletion();
-          }
-        };
-      });
-    </script>
-  </body>
-</html>
+            // 檢查是否集滿所有角色
+            function checkIfComplete() {
+                if (collectedCount === totalCharacters) {
+                    console.log('恭喜！已收集所有角色！');
+                    generateAndShowQRCode();
+                }
+            }
 
+            // 生成並顯示 QR Code
+            function generateAndShowQRCode() {
+                // 1. 準備資料
+                const now = new Date();
+                const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
+                const time = now.toTimeString().split(' ')[0]; // HH:MM:SS
+                const randomCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6位數隨機碼
+
+                const jsonData = {
+                    date: date,
+                    time: time,
+                    code: randomCode,
+                };
+                const jsonString = JSON.stringify(jsonData);
+
+                // 2. 清空容器並生成新的 QR Code
+                qrcodeContainer.innerHTML = '';
+                new QRCode(qrcodeContainer, {
+                    text: jsonString,
+                    width: 100,
+                    height: 100,
+                });
+
+                // 3. 顯示 QR Code 容器
+                qrcodeContainer.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
