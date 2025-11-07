@@ -35,3 +35,41 @@ body {
     z-index: 20;
     display: none; /* 預設隱藏 */
 }
+
+/* (檔案末尾新增) 重置按鈕樣式 */
+#reset-button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 20;
+    padding: 8px 12px;
+    background-color: #ffffff;
+    color: #cc0000; /* 紅色文字以示警告 */
+    border: 2px solid #cc0000;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    display: none; /* 預設隱藏，由 JS 載入後顯示 */
+}
+
+#reset-button:hover {
+    background-color: #fbebeb;
+}
+
+/* (檔案末尾新增) 完成代碼容器樣式 */
+#completion-code-container {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 20;
+    padding: 8px 12px;
+    background-color: white;
+    color: #333;
+    border: 2px solid #4CAF50; /* 綠色邊框，表示完成 */
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: 'Courier New', Courier, monospace; /* 使用等寬字體 */
+    display: none; /* 預設隱藏 */
+}
