@@ -12,57 +12,22 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div id="thumbnails-container">
-        <img id="thumb-0" class="thumbnail" src="assets/thumbnails/thumb1.png">
-        <img id="thumb-1" class="thumbnail" src="assets/thumbnails/thumb2.png">
-        <img id="thumb-2" class="thumbnail" src="assets/thumbnails/thumb3.png">
-        <img id="thumb-3" class="thumbnail" src="assets/thumbnails/thumb4.png">
-        <img id="thumb-4" class="thumbnail" src="assets/thumbnails/thumb5.png">
-        <img id="thumb-5" class="thumbnail" src="assets/thumbnails/thumb6.png">
-        <img id="thumb-6" class="thumbnail" src="assets/thumbnails/thumb7.png">
-        <img id="thumb-7" class="thumbnail" src="assets/thumbnails/thumb8.png">
-    </div>
+    <div id="thumbnails-container"></div>
+    
     <div id="qrcode-container"></div>
 
-    <a-scene id="ar-scene" mindar-image="imageTargetSrc: assets/mind/targets.mind; maxTrack: 1;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-        <a-assets>
-            <img id="char1" src="assets/characters/char1.png">
-            <img id="char2" src="assets/characters/char2.png">
-            <img id="char3" src="assets/characters/char3.png">
-            <img id="char4" src="assets/characters/char4.png">
-            <img id="char5" src="assets/characters/char5.png">
-            <img id="char6" src="assets/characters/char6.png">
-            <img id="char7" src="assets/characters/char7.png">
-            <img id="char8" src="assets/characters/char8.png">
-        </a-assets>
+    <a-scene 
+        id="ar-scene" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false"
+    >
+        <a-assets></a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0">
-            <a-image class="character-image" src="#char1" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
-        </a-entity>
-        <a-entity mindar-image-target="targetIndex: 1">
-            <a-image class="character-image" src="#char2" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
-        </a-entity>
-        <a-entity mindar-image-target="targetIndex: 2">
-            <a-image class="character-image" src="#char3" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
-        </a-entity>
-        <a-entity mindar-image-target="targetIndex: 3">
-            <a-image class="character-image" src="#char4" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
-        </a-entity>
-        <a-entity mindar-image-target="targetIndex: 4">
-            <a-image class="character-image" src="#char5" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
-        </a-entity>
-        <a-entity mindar-image-target="targetIndex: 5">
-            <a-image class="character-image" src="#char6" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
-        </a-entity>
-        <a-entity mindar-image-target="targetIndex: 6">
-            <a-image class="character-image" src="#char7" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
-        </a-entity>
-        <a-entity mindar-image-target="targetIndex: 7">
-            <a-image class="character-image" src="#char8" position="0 0 0" height="1" width="1" rotation="0 0 0" visible="false"></a-image>
-        </a-entity>
-    </a-scene>
+        </a-scene>
 
     <script src="js/main.js" defer></script>
 </body>
