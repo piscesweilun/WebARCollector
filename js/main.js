@@ -11,21 +11,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     /**
      * 從 URL 參數獲取版本號
-     * 例如：index.html?version=v2
-     * @returns {string} 版本號，如果未指定，則預設為 'v1'
      */
     function getVersionFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const version = urlParams.get('version');
-        return version || 'v1'; // 如果 URL 中沒有 'version' 參數，則預設為 'v1'
+        return version || 'v1'; // 預設為 'v1'
     }
 
     // --- 1. 設定檔與儲存密鑰 ---
     const CURRENT_VERSION = getVersionFromURL();
     const CONFIG_PATH = `versions/${CURRENT_VERSION}/config.json`;
-    
-    // 建立一個與版本相關的儲存密鑰
-    // 這樣 v1 和 v2 的進度才不會互相覆蓋
     const SAVE_KEY = `arCollectionSave_${CURRENT_VERSION}`;
 
     // --- 2. 遊戲狀態變數 ---
@@ -37,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sceneEl = document.querySelector('#ar-scene');
     const assetsEl = document.querySelector('a-assets');
     const thumbnailsContainer = document.getElementById('thumbnails-container');
-    const qrcodeContainer = document.getElementById('qrcode-container'); // 保留 (用於被註解的代碼)
+    const qrcodeContainer = document.getElementById('qrcode-container'); 
     const resetButton = document.getElementById('reset-button');
     const completionCodeContainer = document.getElementById('completion-code-container');
 
@@ -46,28 +41,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * 載入進度
-     * @param {number} characterCount - 角色總數
-     * @returns {Array<boolean>} 儲存的進度陣列或新陣列
      */
     function loadProgress(characterCount) {
         const savedData = localStorage.getItem(SAVE_KEY);
         if (savedData) {
             try {
                 const parsedData = JSON.parse(savedData);
-                // 檢查儲存的資料長度是否與當前版本相符
                 if (Array.isArray(parsedData) && parsedData.length === characterCount) {
                     console.log('載入已儲存的進度:', parsedData);
                     return parsedData;
                 } else {
                     console.warn('儲存的進度與目前版本不符，將重置。');
-                    localStorage.removeItem(SAVE_KEY); // 移除不良資料
+                    localStorage.removeItem(SAVE_KEY); 
                 }
             } catch (e) {
                 console.error('解析儲存資料時發生錯誤:', e);
-                localStorage.removeItem(SAVE_KEY); // 移除不良資料
+                localStorage.removeItem(SAVE_KEY); 
             }
         }
-        // 如果沒有儲存的資料或資料不符，則建立一個全新的
         console.log('未找到儲存進度，建立新進度。');
         return Array(characterCount).fill(false);
     }
@@ -85,10 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function resetProgress() {
         if (confirm('您確定要清除所有收集進度並重新開始嗎？')) {
-            // 1. 從 localStorage 移除此版本的資料
             localStorage.removeItem(SAVE_KEY);
-            
-            // 2. 重新載入頁面以回到初始狀態
             alert('進度已清除，頁面將重新載入。');
             window.location.reload();
         }
@@ -106,16 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. 載入設定檔
             const response = await fetch(CONFIG_PATH);
             if (!response.ok) {
-                // 如果指定的版本載入失敗（例如 URL 亂填）
                 console.error(`無法載入設定檔: ${CONFIG_PATH}`);
                 alert(`錯誤：找不到版本 '${CURRENT_VERSION}' 的設定檔。\n將嘗試載入預設版本 'v1'。`);
                 
-                // (可選) 嘗試退回 (fallback) 到 v1
                 const v1_CONFIG_PATH = `versions/v1/config.json`;
                 const v1_response = await fetch(v1_CONFIG_PATH);
-                if (!v1_response.ok) {
-                    throw new Error(`連預設版本 'v1' 都載入失敗。`);
-                }
+                if (!v1_response.ok) throw new Error(`連預設版本 'v1' 都載入失敗。`);
                 config = await v1_response.json();
             } else {
                  config = await response.json();
@@ -124,44 +108,40 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. 設定遊戲狀態 (從 localStorage 載入)
             totalCharacters = config.characters.length;
             collectionState = loadProgress(totalCharacters);
-            collectedCount = collectionState.filter(Boolean).length; // 計算已收集數量
+            collectedCount = collectionState.filter(Boolean).length;
 
-            // 3. 設定 MindAR 屬性
-            sceneEl.setAttribute('mindar-image', `
-                imageTargetSrc: ${config.mindFile};
-                maxTrack: ${config.maxTrack};
-            `);
-
-            // 4. 動態生成 HTML 元素 (縮圖、Assets、AR 實體)
+            // --- (!!! 順序已修改 !!!) ---
+            
+            // 3. (新) 動態生成所有 HTML 元素 (縮圖、Assets、AR 實體)
+            //    並且 *立刻綁定* 事件監聽
             config.characters.forEach((char, index) => {
                 
-                // 4.1. 建立縮圖
+                // 3.1. 建立縮圖
                 const thumbImg = document.createElement('img');
                 thumbImg.id = `thumb-${index}`;
                 thumbImg.className = 'thumbnail';
                 thumbImg.src = char.thumb;
                 thumbnailsContainer.appendChild(thumbImg);
 
-                // 根據載入的進度，立即更新縮圖的透明度
                 if (collectionState[index]) {
                     thumbImg.style.opacity = '1';
                 }
 
-                // 4.2. 建立 <a-assets> 內的 <img>
+                // 3.2. 建立 <a-assets> 內的 <img>
                 const assetImg = document.createElement('img');
                 const assetId = `char-asset-${index}`;
                 assetImg.id = assetId;
                 assetImg.src = char.char;
                 assetsEl.appendChild(assetImg);
 
-                // 4.3. 建立 <a-entity> (AR 目標)
+                // 3.3. 建立 <a-entity> (AR 目標)
                 const entity = document.createElement('a-entity');
                 entity.setAttribute('mindar-image-target', `targetIndex: ${index}`);
                 
-                // 4.4. 建立 <a-image> (顯示的角色圖片)
+                // 3.4. 建立 <a-image> (顯示的角色圖片)
                 const charImage = document.createElement('a-image');
                 charImage.className = 'character-image';
-                charImage.setAttribute('src', `#${assetId}`); // 參照 asset
+                charImage.setAttribute('src', `#${assetId}`); 
                 charImage.setAttribute('position', '0 0 0');
                 charImage.setAttribute('height', '1');
                 charImage.setAttribute('width', '1');
@@ -169,22 +149,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 charImage.setAttribute('visible', 'false');
                 
                 entity.appendChild(charImage);
+
+                // 3.5. (新) 在建立實體時，就直接綁定事件
+                entity.addEventListener('targetFound', event => {
+                    characterImage.setAttribute('visible', 'true');
+                    
+                    if (!collectionState[index]) {
+                        console.log(`收集到角色 #${index + 1}`);
+                        collectionState[index] = true;
+                        collectedCount++;
+
+                        document.getElementById(`thumb-${index}`).style.opacity = '1';
+                        
+                        saveProgress();
+                        checkIfComplete();
+                    }
+                });
+
+                entity.addEventListener('targetLost', event => {
+                    characterImage.setAttribute('visible', 'false');
+                });
+
+                // 3.6. 將 AR 實體加入場景
                 sceneEl.appendChild(entity);
             });
 
-            // 5. (重要) 在所有元素生成後，才綁定事件監聽
-            initializeAREvents();
+            // 4. (新) *在所有實體都加入場景後*，才設定 <a-scene> 的 mindar-image 屬性
+            //    這會觸發 MindAR 開始載入 .mind 檔案並編譯所有已存在的 target
+            sceneEl.setAttribute('mindar-image', `
+                imageTargetSrc: ${config.mindFile};
+                maxTrack: ${config.maxTrack};
+            `);
 
-            // 6. 綁定重置按鈕事件並顯示它
+            // 5. 綁定重置按鈕事件並顯示它
             resetButton.style.display = 'block';
             resetButton.addEventListener('click', resetProgress);
 
-            // 7. 檢查是否一載入時就已經是完成狀態
-            checkIfComplete(true); // 'true' 表示這是初始載入
+            // 6. 檢查是否一載入時就已經是完成狀態
+            checkIfComplete(true); 
 
         } catch (error) {
             console.error('AR 應用程式初始化失敗:', error);
-            // 可以在畫面顯示錯誤訊息
             const errorDiv = document.createElement('div');
             errorDiv.style = "position: fixed; top: 10px; left: 10px; padding: 10px; background: red; color: white; z-index: 1000;";
             errorDiv.innerText = 'AR 載入失敗，請檢查版本設定。';
@@ -196,56 +201,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 6. AR 事件與遊戲邏輯 ---
 
     /**
-     * 綁定 AR 事件監聽
+     * (已移除) initializeAREvents() 函數
+     * (事件監聽已移至 initApp 內的 forEach 迴圈中)
      */
-    function initializeAREvents() {
-        const characterEntities = document.querySelectorAll('[mindar-image-target]');
-
-        characterEntities.forEach((entity, index) => {
-            const characterImage = entity.querySelector('.character-image');
-
-            entity.addEventListener('targetFound', event => {
-                characterImage.setAttribute('visible', 'true');
-                
-                if (!collectionState[index]) {
-                    console.log(`收集到角色 #${index + 1}`);
-                    collectionState[index] = true;
-                    collectedCount++;
-
-                    document.getElementById(`thumb-${index}`).style.opacity = '1';
-                    
-                    // 在收集到新角色時儲存進度
-                    saveProgress();
-                    
-                    checkIfComplete();
-                }
-            });
-
-            entity.addEventListener('targetLost', event => {
-                characterImage.setAttribute('visible', 'false');
-            });
-        });
-    }
 
     /**
      * 檢查是否收集完成
-     * @param {boolean} [isInitialLoad=false] - 是否為初始頁面載入時的檢查
      */
     function checkIfComplete(isInitialLoad = false) {
         if (collectedCount === totalCharacters) {
             if (!isInitialLoad) {
                 console.log('恭喜！已收集所有角色！');
             }
-            // 呼叫顯示完成代碼的函數
             showCompletionCode(); 
         }
     }
 
     /**
-     * 輔助函數：將數字補零到指定長度
-     * @param {number | string} num - 要格式化的數字
-     * @param {number} length - 總長度 (預設為 2)
-     * @returns {string}
+     * 輔助函數：將數字補零
      */
     function pad(num, length = 2) {
         return String(num).padStart(length, '0');
@@ -255,43 +228,24 @@ document.addEventListener('DOMContentLoaded', () => {
      * 顯示收集完成後的日期時間代碼
      */
     function showCompletionCode() {
-        
-        // --- 1. 產生日期時間數字串 (YYYYMMDDHHMMSS) ---
-        
+        // 1. 產生日期時間數字串 (YYYYMMDDHHMMSS)
         const now = new Date();
-        const Y = now.getFullYear();      // YYYY (例如 2025)
-        const M = pad(now.getMonth() + 1); // MM (月份 0-11, 所以 +1)
-        const D = pad(now.getDate());     // DD
-        const h = pad(now.getHours());    // hh (24小時制)
-        const m = pad(now.getMinutes());  // mm
-        const s = pad(now.getSeconds());  // ss
+        const Y = now.getFullYear();      
+        const M = pad(now.getMonth() + 1); 
+        const D = pad(now.getDate());     
+        const h = pad(now.getHours());    
+        const m = pad(now.getMinutes());  
+        const s = pad(now.getSeconds());  
 
-        // 組合
         const codeString = `${Y}${M}${D}${h}${m}${s}`;
         
-        // 顯示在新的容器中
         completionCodeContainer.innerText = codeString;
         completionCodeContainer.style.display = 'block';
 
-
         // --- 2. (已註解) 舊的 QR Code 邏輯 ---
         /*
-        const now = new Date();
-        const timestamp = now.toISOString();
-        const uniqueId = Math.floor(100000 + Math.random() * 900000).toString();
-
-        const jsonData = { timestamp: timestamp, uniqueId: uniqueId };
-        const jsonString = JSON.stringify(jsonData);
-
-        qrcodeContainer.innerHTML = '';
-        new QRCode(qrcodeContainer, {
-            text: jsonString,
-            width: 100,
-            height: 100,
-        });
-        qrcodeContainer.style.display = 'block';
+        ... (qrcode code) ...
         */
-        // --- 註解結束 ---
     }
 
     // --- 7. 啟動應用程式 ---
