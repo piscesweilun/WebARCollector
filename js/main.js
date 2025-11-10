@@ -204,6 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 6. AR 事件與遊戲邏輯 ---
 
     /**
+     * (已移除) initializeAREvents() 函數
+     * (事件監聽已在 initApp 內的 forEach 迴圈中綁定)
+     */
+
+    /**
      * 檢查是否收集完成
      */
     function checkIfComplete(isInitialLoad = false) {
@@ -216,4 +221,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * 輔助函數
+     * 輔助函數：將數字補零
+     */
+    function pad(num, length = 2) {
+        return String(num).padStart(length, '0');
+    }
+
+    /**
+     * 顯示收集完成後的日期時間代碼
+     */
+    function showCompletionCode() {
+        // 1. 產生日期時間數字串 (YYYYMMDDHHMMSS)
+        const now = new Date();
+        const Y = now.getFullYear();      
+        const M = pad(now.getMonth() + 1); 
+        const D = pad(now.getDate());     
+        const h = pad(now.getHours());    
+        const m = pad(now.getMinutes());  
+        const s = pad(now.getSeconds());  
+
+        const codeString = `${Y}${M}${D}${h}${m}${s}`;
+        
+        completionCodeContainer.innerText = codeString;
+        completionCodeContainer.style.display = 'block';
+
+        // --- 2. (已註解) 舊的 QR Code 邏輯 ---
+        /*
+        ... (qrcode code) ...
+        */
+    }
+
+    // --- 7. 啟動應用程式 ---
+    initApp();
+});
