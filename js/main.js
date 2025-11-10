@@ -1,10 +1,11 @@
 /**
- * AR 圖卡收集遊戲
+ * AR 圖卡收集遊戲 (最終修正版)
  * * 功能：
- * 1. 動態版本載入：通過 URL 參數 (e.g., ?version=v2) 載入不同版本的 config.json。
- * 2. 進度儲存：使用 localStorage 儲存每個版本的收集進度。
- * 3. 進度重置：提供「重新開始」按鈕以清除儲存的進度。
- * 4. 完成狀態：收集完成後，在左下角顯示 YYYYMMDDHHMMSS 格式的純數字時間代碼。
+ * 1. 動態版本載入 (URL 參數 ?version=v2)
+ * 2. 進度儲存 (LocalStorage)
+ * 3. 進度重置 (重置按鈕)
+ * 4. 完成狀態 (顯示 YYYYMMDDHHMMSS 代碼)
+ * 5. (修正) 解決 AR 啟動時序問題 (Race Condition)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -110,9 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
             collectionState = loadProgress(totalCharacters);
             collectedCount = collectionState.filter(Boolean).length;
 
-            // --- (!!! 順序已修改 !!!) ---
+            // --- (!!! 關鍵的正確順序 !!!) ---
             
-            // 3. (新) 動態生成所有 HTML 元素 (縮圖、Assets、AR 實體)
+            // 3. (先) 動態生成所有 HTML 元素 (縮圖、Assets、AR 實體)
             //    並且 *立刻綁定* 事件監聽
             config.characters.forEach((char, index) => {
                 
@@ -150,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 entity.appendChild(charImage);
 
-                // 3.5. (新) 在建立實體時，就直接綁定事件
+                // 3.5. (重要) 在建立實體時，就直接綁定事件
                 entity.addEventListener('targetFound', event => {
                     characterImage.setAttribute('visible', 'true');
                     
@@ -174,12 +175,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 sceneEl.appendChild(entity);
             });
 
-            // 4. (新) *在所有實體都加入場景後*，才設定 <a-scene> 的 mindar-image 屬性
+            // 4. (後) *在所有實體都加入場景後*，才設定 <a-scene> 的 mindar-image 屬性
             //    這會觸發 MindAR 開始載入 .mind 檔案並編譯所有已存在的 target
             sceneEl.setAttribute('mindar-image', `
                 imageTargetSrc: ${config.mindFile};
                 maxTrack: ${config.maxTrack};
             `);
+            
+            // --- (順序修正結束) ---
 
             // 5. 綁定重置按鈕事件並顯示它
             resetButton.style.display = 'block';
@@ -201,11 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 6. AR 事件與遊戲邏輯 ---
 
     /**
-     * (已移除) initializeAREvents() 函數
-     * (事件監聽已移至 initApp 內的 forEach 迴圈中)
-     */
-
-    /**
      * 檢查是否收集完成
      */
     function checkIfComplete(isInitialLoad = false) {
@@ -218,36 +216,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * 輔助函數：將數字補零
-     */
-    function pad(num, length = 2) {
-        return String(num).padStart(length, '0');
-    }
-
-    /**
-     * 顯示收集完成後的日期時間代碼
-     */
-    function showCompletionCode() {
-        // 1. 產生日期時間數字串 (YYYYMMDDHHMMSS)
-        const now = new Date();
-        const Y = now.getFullYear();      
-        const M = pad(now.getMonth() + 1); 
-        const D = pad(now.getDate());     
-        const h = pad(now.getHours());    
-        const m = pad(now.getMinutes());  
-        const s = pad(now.getSeconds());  
-
-        const codeString = `${Y}${M}${D}${h}${m}${s}`;
-        
-        completionCodeContainer.innerText = codeString;
-        completionCodeContainer.style.display = 'block';
-
-        // --- 2. (已註解) 舊的 QR Code 邏輯 ---
-        /*
-        ... (qrcode code) ...
-        */
-    }
-
-    // --- 7. 啟動應用程式 ---
-    initApp();
-});
+     * 輔助函數
