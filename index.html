@@ -22,10 +22,9 @@
 
     <a-scene 
         id="ar-scene" 
+        mindar-image
         color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
-        vr-mode-ui="enabled: false" 
-        device-orientation-permission-ui="enabled: false"
+        renderer="colorManagement: true; useLegacyLights: false"
     >
         <a-assets></a-assets>
 
