@@ -3,10 +3,10 @@ body {
     overflow: hidden; /* 隱藏滾動條 */
 }
 
-/* 左側縮圖容器 */
+/* 左側縮圖容器 (修正) */
 #thumbnails-container {
     position: absolute;
-    left: 10px;
+    left: calc(5vw + 10px); /* <-- 修正 (原 6vw) */
     top: 50%;
     transform: translateY(-50%);
     display: flex;
@@ -24,11 +24,11 @@ body {
     transition: opacity 0.3s;
 }
 
-/* 左上角 QR Code 容器 */
+/* 左上角 QR Code 容器 (修正) */
 #qrcode-container {
     position: absolute;
-    right: 10px;
-    top: 10px;
+    right: calc(5vw + 10px); /* <-- 修正 (原 3vw) */
+    top: calc(8vw + 10px);   /* <-- 修正 (原 5vh) */
     background: white;
     padding: 10px;
     border-radius: 8px;
@@ -39,8 +39,8 @@ body {
 /* (檔案末尾新增) 重置按鈕樣式 */
 #reset-button {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
+    bottom: calc(16vw + 10px); /* <-- 修正 (原 5vh) */
+    right: calc(5vw + 10px);  /* <-- 修正 (原 3vw) */
     z-index: 20;
     padding: 8px 12px;
     background-color: #ffffff;
@@ -59,9 +59,9 @@ body {
 
 /* (檔案末尾新增) 完成代碼容器樣式 */
 #completion-code-container {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
+ position: absolute;
+    bottom: calc(16vw + 10px); /* <-- 修正 (原 5vh) */
+    left: calc(5vw + 10px);   /* <-- 修正 (原 3vw) */
     z-index: 20;
     padding: 8px 12px;
     background-color: white;
@@ -72,4 +72,125 @@ body {
     font-weight: bold;
     font-family: 'Courier New', Courier, monospace; /* 使用等寬字體 */
     display: none; /* 預設隱藏 */
+}
+
+/* (新增) CSS 邊框覆蓋層 */
+#border-overlay {
+    /* 1. 佔滿全螢幕 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    
+    /* 2. (重要) 讓 border-width 包含在 100% 內 */
+    box-sizing: border-box; 
+
+    /* --- 3. (核心) 直接 "畫" 出邊框 --- */
+    
+    /* (!!! 依您的要求 !!!)
+       [上下] [左右] 
+       5vh = 5% 的螢幕高度
+       3vw = 3% 的螢幕寬度
+       您可以自行修改這些百分比
+    */
+  /* (!!! 依您的要求修改 !!!)
+       順序: 上(3vw) 右(2vw) 下(5vw) 左(2vw)
+    */
+    border-width: 8vw 5vw 16vw 5vw; 
+    border-style: solid;
+    border-color: #2e4c9f; /* <-- (請修改) 您要的邊框顏色 */
+    
+    /* 4. 中間必須是透明的，才能看到 AR */
+    background: transparent; 
+    
+    /* 5. (重要) 讓點擊穿透 */
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* (修改) 在 body 中定義 CSS 變數 */
+body {
+    /* --- 1. AnpanMan Logo 資料 (與您的邊框同步) --- */
+    --anpanman-aspect-ratio: calc(790 / 257); /* 寬 / 高 */
+    --top-border-height: 8vw;   /* <-- 修正 (原 10vw) */
+    --right-border-width: 5vw;  /* <-- (原 5vw，正確) */
+    
+    /* Logo 尺寸 (新演算法) */
+    --logo-height: calc(var(--top-border-height) * 0.8); 
+    --logo-width: calc(var(--logo-height) * var(--anpanman-aspect-ratio)); 
+    
+    /* Logo 定位輔助 */
+    --logo-height-half: calc(var(--logo-height) / 2);
+    --logo-overlap: 0.5vw; 
+
+    /* --- 2. Copyright 資料 (與您的邊框同步) --- */
+    --copyright-aspect-ratio: calc(1631 / 220); /* 寬 / 高 */
+    --bottom-border-height: 10vw; /* <-- 修正 (原 5vw) */
+    --left-border-width: 5vw;   /* <-- 修正 (原 2vw) */
+
+    /* --- 3. Copyright 尺寸 --- */
+    /* 高度 = 50% 的下方邊框高度 */
+    --copyright-height: calc(var(--bottom-border-height) * 0.4);
+    /* 寬度 = 高度 * 長寬比 */
+    --copyright-width: calc(var(--copyright-height) * var(--copyright-aspect-ratio));
+    /* (輔助) 高度的一半 */
+    --copyright-height-half: calc(var(--copyright-height) / 2);
+}
+
+/* (修改) 麵包超人 Logo 樣式 */
+#anpanman-logo {
+    position: absolute;
+    z-index: 15; 
+    pointer-events: none; 
+
+    /* --- 1. 尺寸 (新演算法) --- */
+    width: var(--logo-width); 
+    height: var(--logo-height);
+    /* (重置) 不再需要 padding-bottom 技巧 */
+    padding-bottom: 0; 
+
+    /* --- 2. 圖片 (路徑已修正) --- */
+    background-image: url('../assets/ui/AnpanManLogo.png');
+    background-size: contain; /* 確保圖片在 W/H 框內保持比例 */
+    background-repeat: no-repeat;
+    background-position: center; 
+
+    /* --- 3. 定位 (新演算法) --- */
+
+    /* Right: 切入右邊框 (2vw) 的左緣 0.5vw */
+    right: calc(var(--right-border-width) - var(--logo-overlap));
+    /* (重置) */
+    margin-right: 0; 
+
+    /* Top: 中心點對齊上方邊框 (3vw) 的下緣 */
+    top: calc(var(--top-border-height) - var(--logo-height-half));
+}
+
+/* (新增) Copyright 圖片樣式 */
+#copyright-image {
+    position: absolute;
+    z-index: 15; /* 與 Logo 相同層級 */
+    pointer-events: none;
+
+    /* --- 1. 尺寸 (使用變數) --- */
+    width: var(--copyright-width);
+    height: var(--copyright-height);
+    padding-bottom: 0;
+
+    /* --- 2. 圖片 (路徑已修正) --- */
+    /* (請確認您的圖片放在 assets/ui/ 資料夾中) */
+    background-image: url('../assets/ui/CopyrightImage.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    /* --- 3. 定位 --- */
+    
+    /* Left: 對齊左側邊框 (2vw) 的內緣 */
+    left: var(--left-border-width);
+    
+    /* Bottom: 垂直置中於下方邊框 (5vw) 區域內 */
+    /* (下方邊框高度 / 2) - (圖片高度 / 2) */
+    bottom: calc((var(--bottom-border-height) / 2) - var(--copyright-height-half));
 }
