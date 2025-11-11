@@ -12,6 +12,11 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <div id="border-overlay"></div>
+
+    <div id="anpanman-logo"></div>
+    <div id="copyright-image"></div>
+    
     <div id="thumbnails-container"></div>
     
     <div id="qrcode-container"></div>
@@ -22,10 +27,9 @@
 
     <a-scene 
         id="ar-scene" 
-        mindar-image color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
-        vr-mode-ui="enabled: false" 
-        device-orientation-permission-ui="enabled: false"
+        mindar-image
+        color-space="sRGB" 
+        renderer="colorManagement: true; useLegacyLights: false"
     >
         <a-assets></a-assets>
 

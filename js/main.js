@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 3.5. (重要) 在建立實體時，就直接綁定事件
                 entity.addEventListener('targetFound', event => {
-                    characterImage.setAttribute('visible', 'true');
+                    charImage.setAttribute('visible', 'true');
                     
                     if (!collectionState[index]) {
                         console.log(`收集到角色 #${index + 1}`);
