@@ -1,49 +1,70 @@
 /**
- * AR 圖卡收集遊戲 (最終修正版)
+ * AR 圖卡收集遊戲 (v3.15 - 修正：不在範圍內一律隱藏)
  * * 功能：
- * 1. 動態版本載入 (URL 參數 ?version=v2)
+ * 1. 動態版本載入
  * 2. 進度儲存 (LocalStorage)
- * 3. 進度重置 (重置按鈕)
- * 4. 完成狀態 (顯示 YYYYMMDDHHMMSS 代碼)
- * 5. (修正) 解決 AR 啟動時序問題 (Race Condition)
+ * 3. (修正) 距離計算 (使用 8660 大數字)
+ * 4. (新) 使用 'AFRAME.registerComponent' 來保證 'tick' 被呼叫
+ * 5. (新) 邏輯修正：無論是否已收集，不在範圍內時一律隱藏模型
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    /**
-     * 從 URL 參數獲取版本號
-     */
-    function getVersionFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const version = urlParams.get('version');
-        return version || 'v1'; // 預設為 'v1'
-    }
-
-    // --- 1. 設定檔與儲存密鑰 ---
-    const CURRENT_VERSION = getVersionFromURL();
-    const CONFIG_PATH = `versions/${CURRENT_VERSION}/config.json`;
-    const SAVE_KEY = `arCollectionSave_${CURRENT_VERSION}`;
+    // --- 1. DOM 元素快取 ---
+    const sceneEl = document.querySelector('#ar-scene');
+    const assetsEl = document.querySelector('a-assets');
+    const thumbnailsContainer = document.getElementById('thumbnails-container');
+    const qrcodeContainer = document.getElementById('qrcode-container');
+    const resetButton = document.getElementById('reset-button');
+    const completionCodeContainer = document.getElementById('completion-code-container');
+    const cameraButton = document.getElementById('camera-button');
+    const cameraSound = document.getElementById('camera-sound');
 
     // --- 2. 遊戲狀態變數 ---
     let collectionState = [];
     let totalCharacters = 0;
     let collectedCount = 0;
-
-    // --- 3. DOM 元素快取 ---
-    const sceneEl = document.querySelector('#ar-scene');
-    const assetsEl = document.querySelector('a-assets');
-    const thumbnailsContainer = document.getElementById('thumbnails-container');
-    const qrcodeContainer = document.getElementById('qrcode-container'); 
-    const resetButton = document.getElementById('reset-button');
-    const completionCodeContainer = document.getElementById('completion-code-container');
+    let currentVisibleTargetEntity = null;
+    let activeTargetIndex = null;
+    let targetLostTimer = null;
+    let CURRENT_VERSION = '';
+    let CONFIG_PATH = '';
+    let SAVE_KEY = '';
+    
+    // (!!!) 用於 3D 計算的可重複使用變數
+    const worldPosition = new THREE.Vector3();
 
     
-    // --- 4. 進度管理 (LocalStorage) ---
+    // --- 3. (!!! 關鍵 !!!) ---
+    // 我們註冊 A-Frame 元件
+    AFRAME.registerComponent('distance-checker', {
+        tick: function () {
+            // 這個 'tick' 會呼叫我們的主偵測函數
+            checkTargetDistance();
+        }
+    });
+    // --- 修正結束 ---
+
+
+    // --- 4. 啟動器 ---
+    initApp();
+
+
+    /**
+     * 從 URL 參數獲取版本號
+     */
+    function getVersionFromURL() {
+        // ... (函數內容保持不變)
+        const urlParams = new URLSearchParams(window.location.search);
+        const version = urlParams.get('version');
+        return version || 'v1';
+    }
 
     /**
      * 載入進度
      */
     function loadProgress(characterCount) {
+        // ... (函數內容保持不變)
         const savedData = localStorage.getItem(SAVE_KEY);
         if (savedData) {
             try {
@@ -53,29 +74,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     return parsedData;
                 } else {
                     console.warn('儲存的進度與目前版本不符，將重置。');
-                    localStorage.removeItem(SAVE_KEY); 
+                    localStorage.removeItem(SAVE_KEY);
                 }
             } catch (e) {
                 console.error('解析儲存資料時發生錯誤:', e);
-                localStorage.removeItem(SAVE_KEY); 
+                localStorage.removeItem(SAVE_KEY);
             }
         }
         console.log('未找到儲存進度，建立新進度。');
         return Array(characterCount).fill(false);
     }
-
     /**
      * 儲存目前進度到 localStorage
      */
     function saveProgress() {
+        // ... (函數內容保持不變)
         localStorage.setItem(SAVE_KEY, JSON.stringify(collectionState));
         console.log('進度已儲存。');
     }
-
     /**
      * 重置進度
      */
     function resetProgress() {
+        // ... (函數內容保持不變)
         if (confirm('您確定要清除所有收集進度並重新開始嗎？')) {
             localStorage.removeItem(SAVE_KEY);
             alert('進度已清除，頁面將重新載入。');
@@ -84,12 +105,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- 5. 應用程式初始化 ---
-
     /**
      * 異步初始化 App
      */
     async function initApp() {
+        
+        // --- 設定全域變數 ---
+        CURRENT_VERSION = getVersionFromURL();
+        CONFIG_PATH = `versions/${CURRENT_VERSION}/config.json`;
+        SAVE_KEY = `arCollectionSave_${CURRENT_VERSION}`;
+
         let config;
         try {
             // 1. 載入設定檔
@@ -110,11 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
             totalCharacters = config.characters.length;
             collectionState = loadProgress(totalCharacters);
             collectedCount = collectionState.filter(Boolean).length;
-
-            // --- (!!! 關鍵的正確順序 !!!) ---
             
-            // 3. (先) 動態生成所有 HTML 元素 (縮圖、Assets、AR 實體)
-            //    並且 *立刻綁定* 事件監聽
+            // 3. (!!! 邏輯修改 !!!) 動態生成元素並綁定 *新* 事件
             config.characters.forEach((char, index) => {
                 
                 // 3.1. 建立縮圖
@@ -128,9 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     thumbImg.style.opacity = '1';
                 }
 
-                // 3.2. 建立 <a-assets> 內的 <img>
+                // 3.2. (!!! 已修正 !!!) 建立 <a-assets> 內的 <img>
+                const assetId = `char-asset-${index}`; 
                 const assetImg = document.createElement('img');
-                const assetId = `char-asset-${index}`;
                 assetImg.id = assetId;
                 assetImg.src = char.char;
                 assetsEl.appendChild(assetImg);
@@ -139,10 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const entity = document.createElement('a-entity');
                 entity.setAttribute('mindar-image-target', `targetIndex: ${index}`);
                 
-                // 3.4. 建立 <a-image> (顯示的角色圖片)
+                // 3.4. (!!! 已修正 !!!) 建立 <a-image> (顯示的角色圖片)
                 const charImage = document.createElement('a-image');
                 charImage.className = 'character-image';
-                charImage.setAttribute('src', `#${assetId}`); 
+                charImage.setAttribute('src', `#${assetId}`);
                 charImage.setAttribute('position', '0 0 0');
                 charImage.setAttribute('height', '1');
                 charImage.setAttribute('width', '1');
@@ -151,48 +173,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 entity.appendChild(charImage);
 
-                // 3.5. (重要) 在建立實體時，就直接綁定事件
-                entity.addEventListener('targetFound', event => {
-                    charImage.setAttribute('visible', 'true');
-                    
-                    if (!collectionState[index]) {
-                        console.log(`收集到角色 #${index + 1}`);
-                        collectionState[index] = true;
-                        collectedCount++;
+                // 3.5. (!!! 新 !!!) 將 A-Frame 實體、索引和圖片元素互相綁定
+                entity.charImageElement = charImage;
+                entity.targetIndex = index;
 
-                        document.getElementById(`thumb-${index}`).style.opacity = '1';
-                        
-                        saveProgress();
-                        checkIfComplete();
+                // 3.6. (!!! 修正 !!!) 加入閃爍緩衝 (並恢復 log)
+                entity.addEventListener('targetFound', event => {
+                    console.log(`事件: targetFound (偵測到目標 #${entity.targetIndex})`);
+                    
+                    if (targetLostTimer) {
+                        clearTimeout(targetLostTimer);
+                        targetLostTimer = null;
                     }
+                    
+                    currentVisibleTargetEntity = entity;
                 });
 
                 entity.addEventListener('targetLost', event => {
-                    characterImage.setAttribute('visible', 'false');
+                    console.log(`事件: targetLost (目標 #${entity.targetIndex} 消失)`);
+                    
+                    if (currentVisibleTargetEntity === entity) {
+                        if (targetLostTimer) clearTimeout(targetLostTimer);
+                        targetLostTimer = setTimeout(() => {
+                            currentVisibleTargetEntity = null;
+                            activeTargetIndex = null;
+                            cameraButton.style.display = 'none';
+                            entity.charImageElement.setAttribute('visible', 'false');
+                            targetLostTimer = null;
+                        }, 100); 
+                    }
                 });
 
-                // 3.6. 將 AR 實體加入場景
+                // 3.7. 將 AR 實體加入場景
                 sceneEl.appendChild(entity);
             });
 
-            // 4. (後) *在所有實體都加入場景後*，才設定 <a-scene> 的 mindar-image 屬性
-            //    這會觸發 MindAR 開始載入 .mind 檔案並編譯所有已存在的 target
+            // 4. (!!!) 綁定偵測與點擊事件
+            cameraButton.addEventListener('click', onCameraButtonClick); // 綁定按鈕點擊
+            
+            // 5. *在所有實體都加入場景後*，才設定 <a-scene> 的 mindar-image 屬性
             sceneEl.setAttribute('mindar-image', `
                 imageTargetSrc: ${config.mindFile};
                 maxTrack: ${config.maxTrack};
             `);
             
-            // --- (順序修正結束) ---
-
-            // 5. 綁定重置按鈕事件並顯示它
+            // 6. 綁定重置按鈕事件並顯示它
             resetButton.style.display = 'block';
             resetButton.addEventListener('click', resetProgress);
 
-            // 6. 檢查是否一載入時就已經是完成狀態
-            checkIfComplete(true); 
+            // 7. 檢查是否一載入時就已經是完成狀態
+            checkIfComplete(true);
 
         } catch (error) {
-            console.error('AR 應用程式初始化失敗:', error);
+            console.error('initApp 執行失敗，跳入 CATCH 區塊', error);
             const errorDiv = document.createElement('div');
             errorDiv.style = "position: fixed; top: 10px; left: 10px; padding: 10px; background: red; color: white; z-index: 1000;";
             errorDiv.innerText = 'AR 載入失敗，請檢查版本設定。';
@@ -200,23 +233,106 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    
-    // --- 6. AR 事件與遊戲邏輯 ---
 
     /**
-     * (已移除) initializeAREvents() 函數
-     * (事件監聽已在 initApp 內的 forEach 迴圈中綁定)
+     * (新) 每幀執行 (Tick)，用於偵測距離
      */
+    function checkTargetDistance() {
+        
+        // (!!! 恢復 v3.10 邏輯 !!!)
+        // 檢查 'currentVisibleTargetEntity' 是否存在
+        if (!currentVisibleTargetEntity) {
+            // 沒有可見目標，結束
+            return;
+        }
+
+        // --- 只有在 currentVisibleTargetEntity 存在時，才會執行到這裡 ---
+        
+        // 1. 獲取資訊
+        const targetIndex = currentVisibleTargetEntity.targetIndex;
+        const charImage = currentVisibleTargetEntity.charImageElement;
+        
+        // 2. (!!! 恢復 v3.10 邏輯 !!!) 
+        // 獲取 *目標* 的世界位置
+        currentVisibleTargetEntity.object3D.getWorldPosition(worldPosition);
+        
+        // (!!! 恢復 v3.10 邏輯 !!!) 
+        // 計算目標的距離 (這會是 8660 之類的大數字)
+        const distance = worldPosition.length();
+
+        // 3. 輸出距離 (!!!)
+        //console.log(`距離偵測: 目標 #${targetIndex}, 距離 (Scene Units): ${distance.toFixed(3)}`);
+
+        
+        // 4. (!!! 關鍵邏輯修正 !!!)
+        // 檢查距離是否在範圍內
+        // (我們仍然使用 8660 適用的大範圍)
+        if (distance >= 3000 && distance <= 6000) {
+            // A. 在範圍內：一律顯示模型
+            charImage.setAttribute('visible', 'true');
+
+            // B. 檢查是否 *尚未* 收集
+            if (!collectionState[targetIndex]) {
+                // 未收集：顯示按鈕
+                cameraButton.style.display = 'block';
+                activeTargetIndex = targetIndex; // 設為「可收集」狀態
+            } else {
+                // 已收集：隱藏按鈕
+                cameraButton.style.display = 'none';
+                activeTargetIndex = null;
+            }
+        } else {
+            // C. 不在範圍內：一律隱藏 (無論是否收集過)
+            charImage.setAttribute('visible', 'false');
+            cameraButton.style.display = 'none';
+            activeTargetIndex = null; // 取消「可收集」狀態
+        }
+    }
+
+    /**
+     * (新) 點擊相機按鈕時觸發
+     */
+    function onCameraButtonClick() {
+        if (activeTargetIndex === null || collectionState[activeTargetIndex]) {
+            return;
+        }
+
+        // --- 執行收集 ---
+        const indexToCollect = activeTargetIndex;
+        
+        console.log(`收集到角色 #${indexToCollect + 1}`);
+        collectionState[indexToCollect] = true;
+        collectedCount++;
+
+        // 更新縮圖
+        document.getElementById(`thumb-${indexToCollect}`).style.opacity = '1';
+        
+        // 儲存進度
+        saveProgress();
+        checkIfComplete();
+        
+        // (新) 播放音效
+        if (cameraSound) {
+            cameraSound.currentTime = 0; // 重置音效
+            cameraSound.play();
+        }
+
+        // 隱藏按鈕 (因為已收集)
+        cameraButton.style.display = 'none';
+        activeTargetIndex = null; // 清除可收集狀態
+    }
+
 
     /**
      * 檢查是否收集完成
      */
     function checkIfComplete(isInitialLoad = false) {
+        // ... (函數內容保持不變)
         if (collectedCount === totalCharacters) {
             if (!isInitialLoad) {
                 console.log('恭喜！已收集所有角色！');
             }
-            showCompletionCode(); 
+            showCompletionCode();
         }
     }
 
@@ -231,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * 顯示收集完成後的日期時間代碼
      */
     function showCompletionCode() {
-        // 1. 產生日期時間數字串 (YYYYMMDDHHMMSS)
+        // ... (函數內容保持不變)
         const now = new Date();
         const Y = now.getFullYear();      
         const M = pad(now.getMonth() + 1); 
@@ -244,13 +360,5 @@ document.addEventListener('DOMContentLoaded', () => {
         
         completionCodeContainer.innerText = codeString;
         completionCodeContainer.style.display = 'block';
-
-        // --- 2. (已註解) 舊的 QR Code 邏輯 ---
-        /*
-        ... (qrcode code) ...
-        */
     }
-
-    // --- 7. 啟動應用程式 ---
-    initApp();
-});
+}); // (!!! 結束 DOMContentLoaded !!!)

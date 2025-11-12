@@ -13,28 +13,29 @@
 </head>
 <body>
     <div id="border-overlay"></div>
-
     <div id="anpanman-logo"></div>
     <div id="copyright-image"></div>
     
     <div id="thumbnails-container"></div>
-    
     <div id="qrcode-container"></div>
-
     <div id="completion-code-container"></div>
-
     <button id="reset-button">重新開始</button>
+
+    <button id="camera-button">
+        <img src="assets/ui/CameraIcon.png" alt="Collect">
+    </button>
 
     <a-scene 
         id="ar-scene" 
         mindar-image
-        color-space="sRGB" 
+        distance-checker color-space="sRGB" 
         renderer="colorManagement: true; useLegacyLights: false"
     >
-        <a-assets></a-assets>
-
+        <a-assets>
+            <audio id="camera-sound" src="assets/audio/Camera.wav" preload="auto"></audio>
+        </a-assets>
+        
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
         </a-scene>
 
     <script src="js/main.js" defer></script>
