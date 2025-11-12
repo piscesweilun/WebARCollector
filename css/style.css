@@ -83,37 +83,36 @@ body {
     bottom: calc(2vw + var(--copyright-height) + 0.5vw); /* <-- 2vw 必須與您在 (1) 中設定的值相同 */
 }
 
-/* (新增) CSS 邊框覆蓋層 */
+/* (!!! 修正 !!!) 
+   我們必須強制 html 和 body 都是 100% 高度
+*/
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* 隱藏滾動條 */
+}
+
+/* (修改) CSS 邊框覆蓋層 */
 #border-overlay {
     /* 1. 佔滿全螢幕 */
     position: absolute;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    
+    width: 100%;  /* <-- (修正!) 原為 100vw */
+    height: 100%; /* <-- (修正!) 原為 100vh */
     
     /* 2. (重要) 讓 border-width 包含在 100% 內 */
-    box-sizing: border-box; 
+    box-sizing: border-box;
 
     /* --- 3. (核心) 直接 "畫" 出邊框 --- */
-    
-    /* (!!! 依您的要求 !!!)
-       [上下] [左右] 
-       5vh = 5% 的螢幕高度
-       3vw = 3% 的螢幕寬度
-       您可以自行修改這些百分比
-    */
-  /* (!!! 依您的要求修改 !!!)
-       順序: 上(3vw) 右(2vw) 下(5vw) 左(2vw)
-    */
-    border-width: 7vh 5vw 10vh 5vw; 
+    /* (保持不變) 您的邊框寬度仍然可以使用 vh/vw */
+    border-width: 5vh 4vw 10vh 5vw;
     border-style: solid;
-    border-color: #2e4c9f; /* <-- (請修改) 您要的邊框顏色 */
+    border-color: #2e4c9f;
     
-    /* 4. 中間必須是透明的，才能看到 AR */
+    /* ... (其他屬性保持不變) ... */
     background: transparent; 
-    
-    /* 5. (重要) 讓點擊穿透 */
     pointer-events: none;
     z-index: 5;
 }
@@ -125,8 +124,8 @@ body {
 
     /* --- 1. AnpanMan Logo 資料 (與您的邊框同步) --- */
     --anpanman-aspect-ratio: calc(790 / 257); /* 寬 / 高 */
-    --top-border-height: 8vh;   /* <-- 修正 (vw -> vh) */
-    --right-border-width: 5vw;  /* (保持不變) */
+    --top-border-height: 6vh;   /* <-- 修正 (vw -> vh) */
+    --right-border-width: 4vw;  /* (保持不變) */
     
     /* ... (Logo 尺寸相關變數保持不變) ... */
     --logo-height: calc(var(--top-border-height) * 0.8);
