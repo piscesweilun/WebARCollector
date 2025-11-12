@@ -57,21 +57,30 @@ body {
     background-color: #fbebeb;
 }
 
-/* (檔案末尾新增) 完成代碼容器樣式 */
+/* (檢查並修改) 完成代碼容器樣式 */
 #completion-code-container {
- position: absolute;
-    bottom: calc(16vw + 10px); /* <-- 修正 (原 5vh) */
-    left: calc(5vw + 10px);   /* <-- 修正 (原 3vw) */
+    position: absolute;
     z-index: 20;
+    
+    /* --- (新) 樣式：透明背景、白色文字 --- */
+    background-color: transparent;
+    color: #FFFFFF; /* 白色文字 */
+    border: none; /* 移除邊框 */
     padding: 8px 12px;
-    background-color: white;
-    color: #333;
-    border: 2px solid #4CAF50; /* 綠色邊框，表示完成 */
-    border-radius: 8px;
+    
+    /* --- (保留) 字型樣式 --- */
     font-size: 16px;
     font-weight: bold;
-    font-family: 'Courier New', Courier, monospace; /* 使用等寬字體 */
-    display: none; /* 預設隱藏 */
+    font-family: 'Courier New', Courier, monospace;
+    display: none;
+
+    /* --- (修正) 定位：在 Copyright 上方 --- */
+    
+    /* Left: 與 Copyright 對齊 */
+    left: var(--ACTUAL-left-border-width); /* <-- (使用新變數) */
+    
+    /* Bottom: 位於 Copyright 頂部 (含 0.5vw 間距) */
+    bottom: calc(2vw + var(--copyright-height) + 0.5vw); /* <-- 2vw 必須與您在 (1) 中設定的值相同 */
 }
 
 /* (新增) CSS 邊框覆蓋層 */
@@ -97,7 +106,7 @@ body {
   /* (!!! 依您的要求修改 !!!)
        順序: 上(3vw) 右(2vw) 下(5vw) 左(2vw)
     */
-    border-width: 8vw 5vw 16vw 5vw; 
+    border-width: 7vh 5vw 10vh 5vw; 
     border-style: solid;
     border-color: #2e4c9f; /* <-- (請修改) 您要的邊框顏色 */
     
@@ -111,30 +120,37 @@ body {
 
 /* (修改) 在 body 中定義 CSS 變數 */
 body {
+    margin: 0;
+    overflow: hidden;
+
     /* --- 1. AnpanMan Logo 資料 (與您的邊框同步) --- */
     --anpanman-aspect-ratio: calc(790 / 257); /* 寬 / 高 */
-    --top-border-height: 8vw;   /* <-- 修正 (原 10vw) */
-    --right-border-width: 5vw;  /* <-- (原 5vw，正確) */
+    --top-border-height: 8vh;   /* <-- 修正 (vw -> vh) */
+    --right-border-width: 5vw;  /* (保持不變) */
     
-    /* Logo 尺寸 (新演算法) */
-    --logo-height: calc(var(--top-border-height) * 0.8); 
-    --logo-width: calc(var(--logo-height) * var(--anpanman-aspect-ratio)); 
-    
-    /* Logo 定位輔助 */
+    /* ... (Logo 尺寸相關變數保持不變) ... */
+    --logo-height: calc(var(--top-border-height) * 0.8);
+    --logo-width: calc(var(--logo-height) * var(--anpanman-aspect-ratio));
     --logo-height-half: calc(var(--logo-height) / 2);
-    --logo-overlap: 0.5vw; 
+    --logo-overlap: 0.5vw;
 
-    /* --- 2. Copyright 資料 (與您的邊框同步) --- */
-    --copyright-aspect-ratio: calc(1631 / 220); /* 寬 / 高 */
-    --bottom-border-height: 10vw; /* <-- 修正 (原 5vw) */
-    --left-border-width: 5vw;   /* <-- 修正 (原 2vw) */
+    /* --- 2. (修改) Copyright 資料 --- */
+    --copyright-aspect-ratio: calc(1631 / 220);
+    
+    /* (新) 這是 *實際* 的邊框尺寸 (僅用於定位) */
+    --ACTUAL-bottom-border-height: 16vh; /* <-- 修正 (vw -> vh) */
+    --ACTUAL-left-border-width: 5vw;   /* (保持不變) */
 
-    /* --- 3. Copyright 尺寸 --- */
-    /* 高度 = 50% 的下方邊框高度 */
-    --copyright-height: calc(var(--bottom-border-height) * 0.4);
-    /* 寬度 = 高度 * 長寬比 */
+    /* --- 3. (修改) Copyright 尺寸 (!!! 您要調整的在這裡 !!!) --- */
+    /* 我們將大小改為 4vh (4% 螢幕高度)，
+       這比 4vw (4% 螢幕寬度) 更穩定。
+       您可以自行調整 4vh 這個值。
+    */
+    --copyright-height: 3vh; /* <-- 修正 (原 4vw) */
+    
+    /* 寬度自動計算 */
     --copyright-width: calc(var(--copyright-height) * var(--copyright-aspect-ratio));
-    /* (輔助) 高度的一半 */
+    /* 高度一半 (輔助) */
     --copyright-height-half: calc(var(--copyright-height) / 2);
 }
 
@@ -167,10 +183,10 @@ body {
     top: calc(var(--top-border-height) - var(--logo-height-half));
 }
 
-/* (新增) Copyright 圖片樣式 */
+/* (修改) Copyright 圖片樣式 */
 #copyright-image {
     position: absolute;
-    z-index: 15; /* 與 Logo 相同層級 */
+    z-index: 15;
     pointer-events: none;
 
     /* --- 1. 尺寸 (使用變數) --- */
@@ -179,18 +195,19 @@ body {
     padding-bottom: 0;
 
     /* --- 2. 圖片 (路徑已修正) --- */
-    /* (請確認您的圖片放在 assets/ui/ 資料夾中) */
     background-image: url('../assets/ui/CopyrightImage.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
 
-    /* --- 3. 定位 --- */
+    /* --- 3. (修正) 定位 --- */
     
-    /* Left: 對齊左側邊框 (2vw) 的內緣 */
-    left: var(--left-border-width);
+    /* Left: 對齊左側邊框 (5vw) 的內緣 */
+    left: var(--ACTUAL-left-border-width); /* <-- (使用新變數) */
     
-    /* Bottom: 垂直置中於下方邊框 (5vw) 區域內 */
-    /* (下方邊框高度 / 2) - (圖片高度 / 2) */
-    bottom: calc((var(--bottom-border-height) / 2) - var(--copyright-height-half));
+   /* Bottom: (修改) 
+       直接設定一個靠近底部的值。
+       (例如，距離螢幕底部 2vw，您可以自行調整)
+    */
+    bottom: 2vw; /* <-- 請調整此值 */
 }
