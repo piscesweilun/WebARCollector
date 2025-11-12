@@ -24,11 +24,6 @@ html, body {
     --ACTUAL-left-border-width: 5vw;   /* <-- (!!注意!!) 匹配下方 'border-width' */
 
    /* --- 3. (修正) Copyright 尺寸 --- */
-    
-    /* (!!! 關鍵修正 !!!)
-       我們指定一個基於 *螢幕寬度* 的寬度 (例如 30vw)。
-       您可以自行調整 '30vw' 這個值。
-    */
     --copyright-width: 30vw; /* <-- (您可以修改此處來調整大小) */
     
     /* 高度自動計算 (寬度 / 長寬比) */
@@ -47,7 +42,7 @@ html, body {
     box-sizing: border-box;
 
     /* (!!!) 這是您 style.css 中最後的設定 */
-    border-width: 5vh 4vw 10vh 5vw;
+    border-width: 5vh 4vw 8vh 5vw;
     border-style: solid;
     border-color: #2e4c9f;
     
@@ -188,13 +183,13 @@ html, body {
     padding: 0;
     cursor: pointer;
 
-    width: 60px;
-    height: 60px;
+    width: 6vh;
+    height: 6vh;
     
     left: 50%;
     
     /* 垂直置中於下方 10vh 邊框內 */
-    bottom: calc((10vh / 2) - 30px); /* 5vh - 30px */
+    bottom: calc((8vh / 2) - 3vh); /* 5vh - 30px */
 
     transform: translateX(-50%);
     display: none;
@@ -217,15 +212,15 @@ html, body {
     cursor: pointer;
 
     /* 2. 尺寸 (與 camera-button 相同) */
-    width: 60px;
-    height: 60px;
+    width: 6vh;
+    height: 6vh;
     
     /* 3. 定位 (水平偏右) */
     /* 距離右邊框 4vw 再往左 80px (可調整) */
-    right: calc(4vw + 80px); 
+    right: calc(4vw + 80px);
     
     /* 4. 定位 (垂直與 camera-button 同高) */
-    bottom: calc((10vh / 2) - 30px); /* 5vh - 30px */
+    bottom: calc((8vh / 2) - 3vh); /* 5vh - 30px */
 
     /* 5. 圖片樣式 */
     display: block; /* 預設顯示 */
@@ -253,10 +248,11 @@ html, body {
 }
 
 #map-overlay img {
-    /* 讓地圖圖片最大化，但保持長寬比且不超出畫面 */
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+    /* (!!!) 
+      您在 中對 #map-overlay img 做了設定，
+      但這會影響到 POI 按鈕 內的圖片。
+      我們只將這個規則套用到 .map-background
+    */
 }
 
 /* 用於隱藏地圖的 helper class */
@@ -293,7 +289,7 @@ body div#mindar-ui-scanning svg {
     cursor: pointer;
 
     /* (!!!) 設定按鈕大小 (可調整，目前設為 60x60) */
-    width: 60px; 
+    width: 60px;
     height: 60px;
 }
 
@@ -302,4 +298,106 @@ body div#mindar-ui-scanning svg {
     height: 100%;
 }
 
-/* (我們移除了 :hover 規則，因為圖片按鈕通常不需要) */
+/* (!!! 新增 !!!) 地圖內容的相對容器 */
+#map-content-container {
+    position: relative; /* 關鍵：設為 POI 的定位基準 */
+    max-width: 100%;
+    max-height: 100%;
+    display: block; /* 讓 <img> 正常顯示 */
+    line-height: 0; /* 移除 <img> 下方多餘空間 */
+}
+
+/* (!!! 新增 !!!) 地圖底圖的樣式 */
+.map-background {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block; /* 移除 <img> 下方多餘空間 */
+}
+
+/* (!!! 新增 !!!) 地圖 POI 按鈕 */
+.map-poi {
+    position: absolute;
+    
+    /* (尺寸可調整) 這裡設為地圖寬度的 7.5% */
+    width: 7.5%;
+    height: auto;
+
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    z-index: 52; /* 高於地圖，低於返回按鈕 */
+    
+    /* 讓 (top, left) 成為中心點 */
+    transform: translate(-50%, -50%);
+}
+
+.map-poi img {
+    width: 100%;
+    height: auto;
+}
+
+/* (!!! 修正 !!!) 資訊面板疊加層 (Flexbox 置中) */
+#info-panel-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 60;
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#info-panel-overlay.hidden { 
+    display: none;
+}
+
+/* (!!! 新增 !!!) 資訊內容的 "相對" 包裝器
+   (這個 div 存在於您的 index.html 中)
+*/
+#info-panel-content {
+    position: relative; /* (!!! 關鍵 !!!) 設為按鈕的定位基準 */
+    
+    /* 讓包裝器縮放以符合圖片 */
+    display: inline-block; 
+    line-height: 0; /* 移除 <img> 下方多餘空間 */
+}
+
+
+/* (!!! 修正 !!!) 資訊圖片 (現在由包裝器 控制大小) */
+#info-panel-image {
+    /* (!!!) 尺寸限制 (我們使用 vw/vh 確保它在螢幕內) */
+    max-width: 90vw;  /* 螢幕寬度的 90% */
+    max-height: 80vh; /* 螢幕高度的 80% */
+    
+    object-fit: contain;
+    display: block; /* 移除 <img> 下方多餘空間 */
+}
+
+/* (!!! 修正 !!!) 資訊面板的關閉按鈕 */
+#info-panel-close {
+    position: absolute; /* (!!! 關鍵 !!!) 相對於 #info-panel-content 定位 */
+    
+    /* (!!! 關鍵修正 !!!) 
+       定位在 *圖片容器* 的 25% / 5%
+    */
+    top: 16%;  /* <-- 往下 1/4 */
+    right: 7%; /* <-- 往內偏一點 */
+    
+    z-index: 61;
+    
+    /* (樣式可調整) */
+    width: 5vh;
+    height: 5vh;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+#info-panel-close img {
+    width: 100%;
+    height: 100%;
+}

@@ -1,10 +1,11 @@
 /**
- * AR 圖卡收集遊戲 (v3.19 - 加入地圖返回按鈕)
+ * AR 圖卡收集遊戲 (v3.20 - 加入地圖 POI 面板邏輯)
  * * 功能：
  * 1. 動態版本載入
  * 2. 進度儲存 (LocalStorage)
- * 3. 重置按鈕
- * 4. (新) 加入地圖返回按鈕
+ * 3. (新) 地圖 POI 按鈕及資訊面板
+ * 4. (新) 使用 'AFRAME.registerComponent' 來保證 'tick' 被呼叫
+ * 5. (新) 邏輯修正：無論是否已收集，不在範圍內時一律隱藏模型
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,10 +20,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const cameraButton = document.getElementById('camera-button');
     const cameraSound = document.getElementById('camera-sound');
 
-    // (!!! 新增 !!!)
+    // (!!! 新增地圖相關元素 !!!)
     const mapButton = document.getElementById('map-button');
     const mapOverlay = document.getElementById('map-overlay');
-    const mapBackButton = document.getElementById('map-back-button'); // (!!! 新增 !!!)
+    const mapBackButton = document.getElementById('map-back-button');
+    const mapPoiButtons = document.querySelectorAll('.map-poi');
+    const infoPanelOverlay = document.getElementById('info-panel-overlay');
+    const infoPanelImage = document.getElementById('info-panel-image');
+    const infoPanelClose = document.getElementById('info-panel-close');
+
 
     // --- 2. 遊戲狀態變數 ---
     let collectionState = [];
@@ -214,8 +220,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 4. (!!!) 綁定偵測與點擊事件
             cameraButton.addEventListener('click', onCameraButtonClick); // 綁定按鈕點擊
-            mapButton.addEventListener('click', toggleMap); // (!!! 修改 !!!)
-            mapBackButton.addEventListener('click', toggleMap); // (!!! 新增 !!!)
+            
+            // (!!! 新增地圖事件綁定 !!!)
+            mapButton.addEventListener('click', toggleMap);
+            mapBackButton.addEventListener('click', toggleMap);
+            infoPanelClose.addEventListener('click', hideInfoPanel);
+            mapPoiButtons.forEach(button => {
+                button.addEventListener('click', onMapPoiClick);
+            });
             
             // 5. *在所有實體都加入場景後*，才設定 <a-scene> 的 mindar-image 屬性
             sceneEl.setAttribute('mindar-image', `
@@ -329,14 +341,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * (!!! 修改 !!!) 切換地圖顯示
+     * (!!! 新增 !!!) 切換地圖顯示
      */
     function toggleMap() {
         if (mapOverlay.classList.contains('hidden')) {
             mapOverlay.classList.remove('hidden');
         } else {
             mapOverlay.classList.add('hidden');
+            // 關閉地圖時，也要確保關閉資訊面板
+            hideInfoPanel();
         }
+    }
+
+    /**
+     * (!!! 新增 !!!) 點擊 POI 按鈕
+     */
+    function onMapPoiClick(event) {
+        // 從按鈕的 'data-index' 屬性獲取索引 (1-8)
+        const index = event.currentTarget.dataset.index;
+        if (!index) return;
+        
+        console.log(`顯示地圖資訊 #${index}`);
+        showInfoPanel(index);
+    }
+
+    /**
+     * (!!! 新增 !!!) 顯示資訊面板
+     */
+    function showInfoPanel(index) {
+        // 設定對應的圖片
+        infoPanelImage.setAttribute('src', `assets/ui/MapInfo_${index}.png`);
+        // 顯示面板
+        infoPanelOverlay.classList.remove('hidden');
+    }
+
+    /**
+     * (!!! 新增 !!!) 隱藏資訊面板
+     */
+    function hideInfoPanel() {
+        infoPanelOverlay.classList.add('hidden');
+        // (可選) 隱藏時清除圖片 src，節省記憶體
+        infoPanelImage.setAttribute('src', '');
     }
 
 

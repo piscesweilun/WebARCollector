@@ -13,10 +13,47 @@
 </head>
 <body>
     <div id="map-overlay" class="hidden">
-        <img src="assets/ui/MapImage_tablet.png" alt="Map">
+        
+        <div id="map-content-container">
+            
+            <img src="assets/ui/MapImage_tablet.png" alt="Map" class="map-background">
+            
+            <button class="map-poi" data-index="1" style="top: 41.4%; left: 61.5%;">
+                <img src="assets/ui/MapBtn_1.png" alt="POI 1">
+            </button>
+            <button class="map-poi" data-index="2" style="top: 46.8%; left: 63.0%;">
+                <img src="assets/ui/MapBtn_2.png" alt="POI 2">
+            </button>
+            <button class="map-poi" data-index="3" style="top: 38.3%; left: 54.0%;">
+                <img src="assets/ui/MapBtn_3.png" alt="POI 3">
+            </button>
+              <button class="map-poi" data-index="4" style="top: 43.6%; left: 51.4%;">
+                <img src="assets/ui/MapBtn_4.png" alt="POI 3">
+            </button> 
+            <button class="map-poi" data-index="5" style="top: 55.7%; left: 31.6%;">
+                <img src="assets/ui/MapBtn_5.png" alt="POI 3">
+            </button>
+             <button class="map-poi" data-index="6" style="top: 51.2%; left: 54.1%;">
+                <img src="assets/ui/MapBtn_6.png" alt="POI 3">
+            </button>
+            <button class="map-poi" data-index="7" style="top: 26.1%; left: 37.4%;">
+                <img src="assets/ui/MapBtn_7.png" alt="POI 7">
+            </button> <button class="map-poi" data-index="8" style="top: 47.9%; left: 31.1%;">
+                <img src="assets/ui/MapBtn_8.png" alt="POI 8">
+            </button>
+             </div>
         <button id="map-back-button">
             <img src="assets/ui/BackButton.png" alt="Back">
         </button>
+    </div>
+
+    <div id="info-panel-overlay" class="hidden">
+        <div id="info-panel-content">
+            <img id="info-panel-image" src="" alt="Info">
+            <button id="info-panel-close">
+                 <img src="assets/ui/CloseButton.png" alt="Close">
+            </button>
+        </div>
     </div>
 
     <div id="border-overlay"></div>
