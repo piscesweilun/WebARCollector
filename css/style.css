@@ -1,12 +1,66 @@
-body {
+/* (!!! 修正 v3.13 !!!) 
+   我們必須強制 html 和 body 都是 100% 高度
+*/
+html, body {
+    height: 100%;
     margin: 0;
     overflow: hidden; /* 隱藏滾動條 */
+
+    /* --- 1. AnpanMan Logo 資料 (與您的邊框同步) --- */
+    --anpanman-aspect-ratio: calc(790 / 257); /* 寬 / 高 */
+    --top-border-height: 5vh;   /* <-- (!!注意!!) 匹配下方 'border-width' */
+    --right-border-width: 4vw;  /* <-- (!!注意!!) 匹配下方 'border-width' */
+    
+    --logo-height: calc(var(--top-border-height) * 0.5);
+    --logo-width: calc(var(--logo-height) * var(--anpanman-aspect-ratio));
+    --logo-height-half: calc(var(--logo-height) / 2);
+    --logo-overlap: 0.5vw;
+
+    /* --- 2. (修改) Copyright 資料 --- */
+    --copyright-aspect-ratio: calc(1631 / 220);
+    
+    /* (新) 這是 *實際* 的邊框尺寸 (僅用於定位) */
+    --ACTUAL-bottom-border-height: 10vh; /* <-- (!!注意!!) 匹配下方 'border-width' */
+    --ACTUAL-left-border-width: 5vw;   /* <-- (!!注意!!) 匹配下方 'border-width' */
+
+   /* --- 3. (修正) Copyright 尺寸 --- */
+    
+    /* (!!! 關鍵修正 !!!)
+       我們指定一個基於 *螢幕寬度* 的寬度 (例如 30vw)。
+       您可以自行調整 '30vw' 這個值。
+    */
+    --copyright-width: 30vw; /* <-- (您可以修改此處來調整大小) */
+    
+    /* 高度自動計算 (寬度 / 長寬比) */
+    --copyright-height: calc(var(--copyright-width) / var(--copyright-aspect-ratio));
+    /* 高度一半 (輔助) */
+    --copyright-height-half: calc(var(--copyright-height) / 2);
 }
+
+/* (修改) CSS 邊框覆蓋層 */
+#border-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;  /* (保持這個設定) */
+    height: 100%; /* (保持這個設定) */
+    box-sizing: border-box;
+
+    /* (!!!) 這是您 style.css 中最後的設定 */
+    border-width: 5vh 4vw 10vh 5vw;
+    border-style: solid;
+    border-color: #2e4c9f;
+    
+    background: transparent;
+    pointer-events: none;
+    z-index: 5;
+}
+
 
 /* 左側縮圖容器 (修正) */
 #thumbnails-container {
     position: absolute;
-    left: calc(5vw + 10px); /* <-- 修正 (原 6vw) */
+    left: calc(5vw + 10px); /* <-- 匹配 5vw 左邊框 */
     top: 50%;
     transform: translateY(-50%);
     display: flex;
@@ -20,165 +74,85 @@ body {
     height: 50px;
     border: 2px solid white;
     border-radius: 8px;
-    opacity: 0.3; /* 預設半透明 */
+    opacity: 0.3;
     transition: opacity 0.3s;
 }
 
 /* 左上角 QR Code 容器 (修正) */
 #qrcode-container {
     position: absolute;
-    right: calc(5vw + 10px); /* <-- 修正 (原 3vw) */
-    top: calc(8vw + 10px);   /* <-- 修正 (原 5vh) */
+    right: calc(4vw + 10px); /* <-- 匹配 4vw 右邊框 */
+    top: calc(5vh + 10px);   /* <-- 匹配 5vh 上邊框 */
     background: white;
     padding: 10px;
     border-radius: 8px;
     z-index: 20;
-    display: none; /* 預設隱藏 */
+    display: none;
 }
 
 /* (檔案末尾新增) 重置按鈕樣式 */
 #reset-button {
     position: absolute;
-    bottom: calc(16vw + 10px); /* <-- 修正 (原 5vh) */
-    right: calc(5vw + 10px);  /* <-- 修正 (原 3vw) */
+    bottom: calc(10vh + 10px); /* <-- 匹配 10vh 下邊框 */
+    right: calc(4vw + 10px);  /* <-- 匹配 4vw 右邊框 */
     z-index: 20;
     padding: 8px 12px;
     background-color: #ffffff;
-    color: #cc0000; /* 紅色文字以示警告 */
+    color: #cc0000;
     border: 2px solid #cc0000;
     border-radius: 8px;
     font-weight: bold;
     cursor: pointer;
     font-size: 14px;
-    display: none; /* 預設隱藏，由 JS 載入後顯示 */
+    display: none;
 }
 
 #reset-button:hover {
     background-color: #fbebeb;
 }
 
-/* (檢查並修改) 完成代碼容器樣式 */
+/* (修正) 完成代碼容器樣式 */
 #completion-code-container {
     position: absolute;
     z-index: 20;
     
-    /* --- (新) 樣式：透明背景、白色文字 --- */
     background-color: transparent;
-    color: #FFFFFF; /* 白色文字 */
-    border: none; /* 移除邊框 */
+    color: #FFFFFF;
+    border: none;
     padding: 8px 12px;
     
-    /* --- (保留) 字型樣式 --- */
     font-size: 16px;
     font-weight: bold;
     font-family: 'Courier New', Courier, monospace;
     display: none;
-
-    /* --- (修正) 定位：在 Copyright 上方 --- */
     
     /* Left: 與 Copyright 對齊 */
-    left: var(--ACTUAL-left-border-width); /* <-- (使用新變數) */
+    left: var(--ACTUAL-left-border-width);
     
-    /* Bottom: 位於 Copyright 頂部 (含 0.5vw 間距) */
-    bottom: calc(2vw + var(--copyright-height) + 0.5vw); /* <-- 2vw 必須與您在 (1) 中設定的值相同 */
-}
-
-/* (!!! 修正 !!!) 
-   我們必須強制 html 和 body 都是 100% 高度
-*/
-html, body {
-    height: 100%;
-    margin: 0;
-    overflow: hidden; /* 隱藏滾動條 */
-}
-
-/* (修改) CSS 邊框覆蓋層 */
-#border-overlay {
-    /* 1. 佔滿全螢幕 */
-    position: absolute;
-    top: 0;
-    left: 0;
-    
-    width: 100%;  /* <-- (修正!) 原為 100vw */
-    height: 100%; /* <-- (修正!) 原為 100vh */
-    
-    /* 2. (重要) 讓 border-width 包含在 100% 內 */
-    box-sizing: border-box;
-
-    /* --- 3. (核心) 直接 "畫" 出邊框 --- */
-    /* (保持不變) 您的邊框寬度仍然可以使用 vh/vw */
-    border-width: 5vh 4vw 10vh 5vw;
-    border-style: solid;
-    border-color: #2e4c9f;
-    
-    /* ... (其他屬性保持不變) ... */
-    background: transparent; 
-    pointer-events: none;
-    z-index: 5;
-}
-
-/* (修改) 在 body 中定義 CSS 變數 */
-body {
-    margin: 0;
-    overflow: hidden;
-
-    /* --- 1. AnpanMan Logo 資料 (與您的邊框同步) --- */
-    --anpanman-aspect-ratio: calc(790 / 257); /* 寬 / 高 */
-    --top-border-height: 6vh;   /* <-- 修正 (vw -> vh) */
-    --right-border-width: 4vw;  /* (保持不變) */
-    
-    /* ... (Logo 尺寸相關變數保持不變) ... */
-    --logo-height: calc(var(--top-border-height) * 0.8);
-    --logo-width: calc(var(--logo-height) * var(--anpanman-aspect-ratio));
-    --logo-height-half: calc(var(--logo-height) / 2);
-    --logo-overlap: 0.5vw;
-
-    /* --- 2. (修改) Copyright 資料 --- */
-    --copyright-aspect-ratio: calc(1631 / 220);
-    
-    /* (新) 這是 *實際* 的邊框尺寸 (僅用於定位) */
-    --ACTUAL-bottom-border-height: 16vh; /* <-- 修正 (vw -> vh) */
-    --ACTUAL-left-border-width: 5vw;   /* (保持不變) */
-
-    /* --- 3. (修改) Copyright 尺寸 (!!! 您要調整的在這裡 !!!) --- */
-    /* 我們將大小改為 4vh (4% 螢幕高度)，
-       這比 4vw (4% 螢幕寬度) 更穩定。
-       您可以自行調整 4vh 這個值。
-    */
-    --copyright-height: 3vh; /* <-- 修正 (原 4vw) */
-    
-    /* 寬度自動計算 */
-    --copyright-width: calc(var(--copyright-height) * var(--copyright-aspect-ratio));
-    /* 高度一半 (輔助) */
-    --copyright-height-half: calc(var(--copyright-height) / 2);
+    /* Bottom: 位於 Copyright (bottom 2vw) 的上方 */
+    bottom: calc(2vw + var(--copyright-height) + 0.5vw);
 }
 
 /* (修改) 麵包超人 Logo 樣式 */
 #anpanman-logo {
     position: absolute;
-    z-index: 15; 
-    pointer-events: none; 
+    z-index: 15;
+    pointer-events: none;
 
-    /* --- 1. 尺寸 (新演算法) --- */
-    width: var(--logo-width); 
+    width: var(--logo-width);
     height: var(--logo-height);
-    /* (重置) 不再需要 padding-bottom 技巧 */
-    padding-bottom: 0; 
+    padding-bottom: 0;
 
-    /* --- 2. 圖片 (路徑已修正) --- */
     background-image: url('../assets/ui/AnpanManLogo.png');
-    background-size: contain; /* 確保圖片在 W/H 框內保持比例 */
+    background-size: contain;
     background-repeat: no-repeat;
-    background-position: center; 
+    background-position: center;
 
-    /* --- 3. 定位 (新演算法) --- */
-
-    /* Right: 切入右邊框 (2vw) 的左緣 0.5vw */
+    /* Right: 切入右邊框 */
     right: calc(var(--right-border-width) - var(--logo-overlap));
-    /* (重置) */
-    margin-right: 0; 
+    margin-right: 0;
 
-    /* Top: 中心點對齊上方邊框 (3vw) 的下緣 */
+    /* Top: 中心點對齊上方邊框下緣 */
     top: calc(var(--top-border-height) - var(--logo-height-half));
 }
 
@@ -188,55 +162,41 @@ body {
     z-index: 15;
     pointer-events: none;
 
-    /* --- 1. 尺寸 (使用變數) --- */
     width: var(--copyright-width);
     height: var(--copyright-height);
     padding-bottom: 0;
 
-    /* --- 2. 圖片 (路徑已修正) --- */
     background-image: url('../assets/ui/CopyrightImage.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
 
-    /* --- 3. (修正) 定位 --- */
+    /* Left: 對齊左側邊框的內緣 */
+    left: var(--ACTUAL-left-border-width);
     
-    /* Left: 對齊左側邊框 (5vw) 的內緣 */
-    left: var(--ACTUAL-left-border-width); /* <-- (使用新變數) */
-    
-   /* Bottom: (修改) 
-       直接設定一個靠近底部的值。
-       (例如，距離螢幕底部 2vw，您可以自行調整)
-    */
-    bottom: 2vw; /* <-- 請調整此值 */
+    /* Bottom: 靠近底部 (您可以自行調整 '2vw') */
+    bottom: 2vw;
 }
 
-/* (新增) 相機按鈕樣式 */
+/* (修改) 相機按鈕樣式 */
 #camera-button {
     position: absolute;
-    z-index: 20; /* 確保在 UI 頂層 */
+    z-index: 20;
     
-    /* 1. 外觀 */
     background: transparent;
     border: none;
     padding: 0;
     cursor: pointer;
 
-    /* 2. 尺寸 (您可以自行調整) */
     width: 60px;
     height: 60px;
     
-    /* 3. 定位 (水平置中) */
     left: 50%;
     
-    /* 4. 定位 (垂直置中於下方 16vh 邊框內) */
-    /* (下方邊框高度 / 2) - (按鈕高度 / 2) */
-    bottom: calc((10vh / 2) - 30px); /* 8vh - 30px */
+    /* 垂直置中於下方 10vh 邊框內 */
+    bottom: calc((10vh / 2) - 30px); /* 5vh - 30px */
 
-    /* 5. 讓 left: 50% 是以中心點計算 */
     transform: translateX(-50%);
-
-    /* 6. 預設隱藏 */
     display: none;
 }
 
@@ -245,26 +205,101 @@ body {
     height: 100%;
 }
 
-/* (!!! 修正 v3 - 提高 CSS 優先級 !!!) */
-/* 我們在 'div' 前面加上 'body' 來提高優先級 */
+/* (!!! 新增 !!!) 地圖按鈕樣式 */
+#map-button {
+    position: absolute;
+    z-index: 20; /* 與 camera-button 同層級 */
+    
+    /* 1. 外觀 */
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
 
+    /* 2. 尺寸 (與 camera-button 相同) */
+    width: 60px;
+    height: 60px;
+    
+    /* 3. 定位 (水平偏右) */
+    /* 距離右邊框 4vw 再往左 80px (可調整) */
+    right: calc(4vw + 80px); 
+    
+    /* 4. 定位 (垂直與 camera-button 同高) */
+    bottom: calc((10vh / 2) - 30px); /* 5vh - 30px */
+
+    /* 5. 圖片樣式 */
+    display: block; /* 預設顯示 */
+}
+
+#map-button img {
+    width: 100%;
+    height: 100%;
+}
+
+/* (!!! 新增 !!!) 地圖容器樣式 */
+#map-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9); /* 半透明黑底 */
+    z-index: 50; /* 顯示在最上層 */
+    
+    /* Flexbox 讓地圖置中 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#map-overlay img {
+    /* 讓地圖圖片最大化，但保持長寬比且不超出畫面 */
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* 用於隱藏地圖的 helper class */
+#map-overlay.hidden {
+    display: none;
+}
+
+
+/* (!!!) 掃描框大小 (v3 邏輯) */
 body div#mindar-ui-scanning {
-    /*
-      MindAR 預設使用 100px。
-      我們強制覆蓋它。
-    */
     width: 15vw !important;
     height: 15vw !important;
-
-    /* (!! 新增 !!) 
-       加入 max-width，以防 'width' 被其他東西撐開
-    */
     max-width: 15vw !important;
     max-height: 15vw !important;
 }
-
-/* (!!!) 我們也提高 SVG 的優先級 */
 body div#mindar-ui-scanning svg {
     width: 100% !important;
     height: 100% !important;
 }
+
+/* (!!! 新增 !!!) 地圖返回按鈕樣式 (圖片版) */
+#map-back-button {
+    position: absolute;
+    bottom: 30px; /* 距離螢幕底部 30px (可調整) */
+    left: 50%;
+    transform: translateX(-50%); /* 水平置中 */
+    
+    z-index: 51; /* 高於地圖疊加層 (z-index: 50) */
+    
+    /* (!!! 修正 for image !!!) */
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+
+    /* (!!!) 設定按鈕大小 (可調整，目前設為 60x60) */
+    width: 60px; 
+    height: 60px;
+}
+
+#map-back-button img {
+    width: 100%;
+    height: 100%;
+}
+
+/* (我們移除了 :hover 規則，因為圖片按鈕通常不需要) */

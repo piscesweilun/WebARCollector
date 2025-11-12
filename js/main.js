@@ -1,11 +1,10 @@
 /**
- * AR 圖卡收集遊戲 (v3.15 - 修正：不在範圍內一律隱藏)
+ * AR 圖卡收集遊戲 (v3.19 - 加入地圖返回按鈕)
  * * 功能：
  * 1. 動態版本載入
  * 2. 進度儲存 (LocalStorage)
- * 3. (修正) 距離計算 (使用 8660 大數字)
- * 4. (新) 使用 'AFRAME.registerComponent' 來保證 'tick' 被呼叫
- * 5. (新) 邏輯修正：無論是否已收集，不在範圍內時一律隱藏模型
+ * 3. 重置按鈕
+ * 4. (新) 加入地圖返回按鈕
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,6 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const completionCodeContainer = document.getElementById('completion-code-container');
     const cameraButton = document.getElementById('camera-button');
     const cameraSound = document.getElementById('camera-sound');
+
+    // (!!! 新增 !!!)
+    const mapButton = document.getElementById('map-button');
+    const mapOverlay = document.getElementById('map-overlay');
+    const mapBackButton = document.getElementById('map-back-button'); // (!!! 新增 !!!)
 
     // --- 2. 遊戲狀態變數 ---
     let collectionState = [];
@@ -151,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // 3.2. (!!! 已修正 !!!) 建立 <a-assets> 內的 <img>
-                const assetId = `char-asset-${index}`; 
+                const assetId = `char-asset-${index}`;
                 const assetImg = document.createElement('img');
                 assetImg.id = assetId;
                 assetImg.src = char.char;
@@ -210,6 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 4. (!!!) 綁定偵測與點擊事件
             cameraButton.addEventListener('click', onCameraButtonClick); // 綁定按鈕點擊
+            mapButton.addEventListener('click', toggleMap); // (!!! 修改 !!!)
+            mapBackButton.addEventListener('click', toggleMap); // (!!! 新增 !!!)
             
             // 5. *在所有實體都加入場景後*，才設定 <a-scene> 的 mindar-image 屬性
             sceneEl.setAttribute('mindar-image', `
@@ -320,6 +326,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // 隱藏按鈕 (因為已收集)
         cameraButton.style.display = 'none';
         activeTargetIndex = null; // 清除可收集狀態
+    }
+
+    /**
+     * (!!! 修改 !!!) 切換地圖顯示
+     */
+    function toggleMap() {
+        if (mapOverlay.classList.contains('hidden')) {
+            mapOverlay.classList.remove('hidden');
+        } else {
+            mapOverlay.classList.add('hidden');
+        }
     }
 
 
