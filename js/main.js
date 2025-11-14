@@ -1,11 +1,10 @@
 /**
- * AR 圖卡收集遊戲 (v3.20 - 加入地圖 POI 面板邏輯)
+ * AR 圖卡收集遊戲 (v3.22 - 加入首次完成慶祝)
  * * 功能：
  * 1. 動態版本載入
- * 2. 進度儲存 (LocalStorage)
- * 3. (新) 地圖 POI 按鈕及資訊面板
- * 4. (新) 使用 'AFRAME.registerComponent' 來保證 'tick' 被呼叫
- * 5. (新) 邏輯修正：無論是否已收集，不在範圍內時一律隱藏模型
+ * 2. (新) 升級儲存格式 (儲存 collectionState 和 isGameCompleted 標記)
+ * 3. (新) 首次收集完成時顯示慶祝訊息
+ * 4. (新) 之後完成時，在日期碼 後面附加文字
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,8 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const completionCodeContainer = document.getElementById('completion-code-container');
     const cameraButton = document.getElementById('camera-button');
     const cameraSound = document.getElementById('camera-sound');
-
-    // (!!! 新增地圖相關元素 !!!)
     const mapButton = document.getElementById('map-button');
     const mapOverlay = document.getElementById('map-overlay');
     const mapBackButton = document.getElementById('map-back-button');
@@ -28,20 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const infoPanelOverlay = document.getElementById('info-panel-overlay');
     const infoPanelImage = document.getElementById('info-panel-image');
     const infoPanelClose = document.getElementById('info-panel-close');
+    const celebrationMessage = document.getElementById('completion-celebration'); // (!!! 新增 !!!)
 
 
     // --- 2. 遊戲狀態變數 ---
     let collectionState = [];
     let totalCharacters = 0;
     let collectedCount = 0;
+    let isGameCompleted = false; // (!!! 新增 !!!)
     let currentVisibleTargetEntity = null;
     let activeTargetIndex = null;
     let targetLostTimer = null;
     let CURRENT_VERSION = '';
     let CONFIG_PATH = '';
     let SAVE_KEY = '';
-    
-    // (!!!) 用於 3D 計算的可重複使用變數
     const worldPosition = new THREE.Vector3();
 
     
@@ -71,42 +68,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * 載入進度
+     * (!!! 修正 !!!) 載入進度 (升級為物件格式)
      */
     function loadProgress(characterCount) {
-        // ... (函數內容保持不變)
-        const savedData = localStorage.getItem(SAVE_KEY);
-        if (savedData) {
+        const savedDataRaw = localStorage.getItem(SAVE_KEY);
+        if (savedDataRaw) {
             try {
-                const parsedData = JSON.parse(savedData);
-                if (Array.isArray(parsedData) && parsedData.length === characterCount) {
-                    console.log('載入已儲存的進度:', parsedData);
-                    return parsedData;
-                } else {
-                    console.warn('儲存的進度與目前版本不符，將重置。');
-                    localStorage.removeItem(SAVE_KEY);
+                const parsedData = JSON.parse(savedDataRaw);
+                
+                // (!!! 新 !!!) 檢查新格式 (物件)
+                if (parsedData && parsedData.collectionState) {
+                    if (parsedData.collectionState.length === characterCount) {
+                        console.log('載入已儲存的進度 (v2 格式):', parsedData);
+                        isGameCompleted = parsedData.isGameCompleted || false; // (!!!) 設定全域標記
+                        return parsedData.collectionState; // (!!!)
+                    }
+                // (!!! 新 !!!) 檢查舊格式 (陣列)
+                } else if (Array.isArray(parsedData)) {
+                    if (parsedData.length === characterCount) {
+                        console.log('載入已儲存的進度 (v1 格式 - 遷移中):', parsedData);
+                        isGameCompleted = false; // 舊格式代表尚未 (首次) 完成
+                        return parsedData;
+                    }
                 }
+                
+                // 資料無效或長度不符
+                console.warn('儲存的進度與目前版本不符，將重置。');
+                
             } catch (e) {
                 console.error('解析儲存資料時發生錯誤:', e);
-                localStorage.removeItem(SAVE_KEY);
             }
         }
+        
+        // 找不到有效資料
         console.log('未找到儲存進度，建立新進度。');
-        return Array(characterCount).fill(false);
+        isGameCompleted = false; // (!!!) 重置全域標記
+        return Array(characterCount).fill(false); // (!!!)
     }
+    
     /**
-     * 儲存目前進度到 localStorage
+     * (!!! 修正 !!!) 儲存目前進度 (升級為物件格式)
      */
     function saveProgress() {
-        // ... (函數內容保持不變)
-        localStorage.setItem(SAVE_KEY, JSON.stringify(collectionState));
-        console.log('進度已儲存。');
+        const dataToSave = {
+            collectionState: collectionState,
+            isGameCompleted: isGameCompleted
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
+        console.log('進度已儲存 (v2 格式)。');
     }
+    
     /**
      * 重置進度
      */
     function resetProgress() {
-        // ... (函數內容保持不變)
+        // (!!!) resetProgress 只需要清除 localStorage 並重載
+        // loadProgress 會自動處理重置 isGameCompleted
         if (confirm('您確定要清除所有收集進度並重新開始嗎？')) {
             localStorage.removeItem(SAVE_KEY);
             alert('進度已清除，頁面將重新載入。');
@@ -143,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 2. 設定遊戲狀態 (從 localStorage 載入)
             totalCharacters = config.characters.length;
-            collectionState = loadProgress(totalCharacters);
+            collectionState = loadProgress(totalCharacters); // (!!!) loadProgress 現在也會設定 isGameCompleted
             collectedCount = collectionState.filter(Boolean).length;
             
             // 3. (!!! 邏輯修改 !!!) 動態生成元素並綁定 *新* 事件
@@ -235,9 +252,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 maxTrack: ${config.maxTrack};
             `);
             
-            // 6. 綁定重置按鈕事件並顯示它
-            resetButton.style.display = 'block';
-            resetButton.addEventListener('click', resetProgress);
+
+            // 6. (!!! 關鍵修改 !!!) 綁定重置按鈕 (僅在 debug 模式)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isDebug = (urlParams.get('debug') === 'true');
+
+            if (isDebug) {
+                console.log('Debug 模式啟動：顯示重置按鈕');
+                resetButton.style.display = 'block';
+                resetButton.addEventListener('click', resetProgress);
+            }
+            // (如果不是 debug，它會保持 CSS 預設的 display: none)
 
             // 7. 檢查是否一載入時就已經是完成狀態
             checkIfComplete(true);
@@ -386,17 +411,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     /**
-     * 檢查是否收集完成
+     * (!!! 修正 !!!) 檢查是否收集完成
      */
     function checkIfComplete(isInitialLoad = false) {
-        // ... (函數內容保持不變)
         if (collectedCount === totalCharacters) {
-            if (!isInitialLoad) {
-                console.log('恭喜！已收集所有角色！');
+            
+            // (!!! 新增 !!!) 檢查是否為首次完成
+            if (!isGameCompleted) {
+                console.log('恭喜！首次收集所有角色！');
+                isGameCompleted = true; // (A) 設定標記
+                saveProgress();         // (B) 立刻儲存標記
+                showCelebrationMessage(); // (C) 顯示大訊息
+            } else {
+                if (!isInitialLoad) {
+                    console.log('恭喜！已收集所有角色！');
+                }
             }
+            
+            // (!!!) 總是顯示日期代碼
             showCompletionCode();
         }
     }
+
+    /**
+     * (!!! 新增 !!!) 顯示大慶祝訊息
+     */
+    function showCelebrationMessage() {
+        celebrationMessage.classList.remove('hidden');
+        // 4 秒後自動隱藏
+        setTimeout(() => {
+            celebrationMessage.classList.add('hidden');
+        }, 4000);
+    }
+
 
     /**
      * 輔助函數：將數字補零
@@ -406,10 +453,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * 顯示收集完成後的日期時間代碼
+     * (!!! 修正 !!!) 顯示收集完成後的日期時間代碼
      */
     function showCompletionCode() {
-        // ... (函數內容保持不變)
         const now = new Date();
         const Y = now.getFullYear();      
         const M = pad(now.getMonth() + 1); 
@@ -418,7 +464,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const m = pad(now.getMinutes());  
         const s = pad(now.getSeconds());  
 
-        const codeString = `${Y}${M}${D}${h}${m}${s}`;
+        let codeString = `${Y}${M}${D}${h}${m}${s}`;
+        
+        // (!!! 新增 !!!) 如果已完成，附加文字
+        if (isGameCompleted) {
+            codeString += ' 收集完成';
+        }
         
         completionCodeContainer.innerText = codeString;
         completionCodeContainer.style.display = 'block';
