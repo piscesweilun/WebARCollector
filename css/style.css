@@ -125,7 +125,7 @@ html, body {
     left: var(--ACTUAL-left-border-width);
     
     /* Bottom: 位於 Copyright (bottom 2vw) 的上方 */
-    bottom: calc(2vw + var(--copyright-height) + 0.5vw);
+    bottom: calc(1.5vh + var(--copyright-height) + 0.3vh);
 }
 
 /* (修改) 麵包超人 Logo 樣式 */
@@ -401,6 +401,7 @@ body div#mindar-ui-scanning svg {
     width: 100%;
     height: 100%;
 }
+
 /* (!!! 新增 !!!) 首次完成的慶祝訊息 */
 #completion-celebration {
     position: absolute;
@@ -410,12 +411,13 @@ body div#mindar-ui-scanning svg {
     z-index: 100; /* 顯示在所有元素的最上層 */
     
     /* 外觀 */
-    font-size: 48px; /* 大字體 */
+    font-size: 32px; /* 大字體 */
     font-weight: bold;
+    font-family: 'Courier New', Courier, monospace; /* 5. 保持字型 */
     color: white;
     text-shadow: 2px 2px 4px #000000;
     padding: 25px 40px;
-    background-color: rgba(0, 0, 0, 0.75); /* 半透明黑底 */
+    background-color: #2e4c9f; /* 和外框一樣的顏色 */
     border: 3px solid white;
     border-radius: 20px;
     
