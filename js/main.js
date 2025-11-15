@@ -438,10 +438,10 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function showCelebrationMessage() {
         celebrationMessage.classList.remove('hidden');
-        // 4 秒後自動隱藏
+        // 5 秒後自動隱藏
         setTimeout(() => {
             celebrationMessage.classList.add('hidden');
-        }, 4000);
+        }, 5000);
     }
 
 

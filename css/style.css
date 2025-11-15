@@ -411,7 +411,7 @@ body div#mindar-ui-scanning svg {
     z-index: 100; /* 顯示在所有元素的最上層 */
     
     /* 外觀 */
-    font-size: 32px; /* 大字體 */
+    font-size: 28px; /* 大字體 */
     font-weight: bold;
     font-family: 'Courier New', Courier, monospace; /* 5. 保持字型 */
     color: white;
